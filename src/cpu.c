@@ -65,8 +65,8 @@ void WriteMemory(uint16_t Address, uint8_t Value);
 void Push(word);
 void Pop(word*);
 
-uint8_t Memory[SIZE_MEMORY];
-short Protections[SIZE_MEMORY];
+uint8_t Memory[Z80_MEM_SIZE];
+short Protections[Z80_MEM_SIZE];
 
 uint8_t IR;
 
@@ -99,7 +99,7 @@ bool IndirectMemoryWrite;
 bool MemoryWrite;
 uint8_t MemoryData;
 uint16_t MemoryAddress;
-reg* PointerReg;
+reg_t* PointerReg;
 uint8_t Index;
 
 trap Exception;
@@ -572,31 +572,6 @@ void MetaCall(uint8_t Number) {
 	}
 	UsefulInstruction=true;
 }
-
-void SnapshotState(FILE* Handle) {
-	char Mnemonic[MAX_NAME];
-	uint16_t InstructionAddress;
-	InstructionAddress=PC.Word;
-	fprintf(Handle, "Frame %ld Begin\n", InstructionsExecuted);
-	fprintf(Handle, "\tPC <0x%04x> SP <0x%04x>\n", PC.Word, SP.Word);
-	fprintf(Handle, "\tA <0x%02x>\n", AF.Bytes.H);
-	fprintf(Handle, "\tfS <%d> fZ <%d> f5 <%d> fH <%d> f3 <%d> fP <%d> fN <%d> fC <%d>\n", ((AF.Bytes.L>>7)&1), ((AF.Bytes.L>>6)&1), ((AF.Bytes.L>>5)&1), ((AF.Bytes.L>>4)&1), ((AF.Bytes.L>>3)&1), ((AF.Bytes.L>>2)&1), ((AF.Bytes.L>>1)&1), ((AF.Bytes.L>>7)&0)); 
-	fprintf(Handle, "\tHL <0x%04x>\n", HL.Word);
-	fprintf(Handle, "\tIX <0x%04x> IY <0x%04x>\n", IX.Word, IY.Word),
-	fprintf(Handle, "\tBC <0x%04x> DE <0x%04x>\n", BC.Word, DE.Word);
-	fprintf(Handle, "\tMAR <0x%04x> MDR <0x%02x>\n", MemoryAddress, MemoryData);
-        if(MemoryWrite) fprintf(Handle, "\tStore <true>\n"); else fprintf(Handle, "\tStore <false>\n");
-	fprintf(Handle, "\tStack <0x%02x%02x>\n", Memory[(word)(SP.Word+1)], Memory[(word)(SP.Word+0)]);
-        Disassemble(&InstructionAddress, Mnemonic);
-	fprintf(Handle, "\tMnemonic <%s>\n", Mnemonic);
-	fprintf(Handle, "End\n");
-}
-
-
-void PrintRegisters(FILE *Handle) {
-        fprintf(Handle, "SP:%04x AF:%04x BC:%04x DE:%04x HL:%04x IX:%04x IY:%04x", SP.Word, AF.Word, BC.Word, DE.Word, HL.Word, IX.Word, IY.Word);
-}
-
 
 inline uint16_t FetchAddress(word* Address) {
 	return Memory[(*Address)++] | (Memory[(*Address)++]<<8);
