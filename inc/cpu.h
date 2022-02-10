@@ -32,11 +32,23 @@ SOFTWARE.
 ******************************************************************************/
 
 
-#ifndef __LIBZ80CPU_OPCODES_H__
-#define __LIBZ80CPU_OPCODES_H__
+#ifndef __LIBZ80CPU_CPU_H__
+#define __LIBZ80CPU_CPU_H__
 
+#include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+typedef uint8_t (*cpu_mem_rd_cb_t)(uint16_t addr);
+typedef void (*cpu_mem_wr_cb_t)(uint16_t addr,uint8_t byte);
+
+typedef uint8_t (*cpu_io_rd_cb_t)(uint8_t addr);
+typedef void (*cpu_io_wr_cb_t)(uint8_t addr,uint8_t byte);
 
 typedef enum {
 	REG_NONE,
@@ -48,22 +60,20 @@ typedef enum {
 	REG_HL,
 	REG_IX,
 	REG_IY
-} regSpec;
+} cpu_reg_t;
 
-typedef enum {
-        TRAP_NONE,
-        TRAP_ILLEGAL,
-        TRAP_MEMORY,
-        TRAP_NOEFFECT,
-	TRAP_METACALL
-} trap;
+void Init(	
+			cpu_mem_rd_cb_t	cpu_mem_rd_cb,
+			cpu_mem_wr_cb_t cpu_mem_wr_cb,
+			cpu_io_rd_cb_t cpu_io_rd_cb,
+			cpu_io_wr_cb_t cpu_io_wr_cb 
+		);
 
-void Init(void);
-trap Step(void);
-uint16_t GetRegister(regSpec);
-byte GetMemoryByte(uint16_t Address);
-uint16_t GetMemoryWord(uint16_t Address);
-uint32_t GetFrame(void);
+void Step(void);
 void RaiseIRQ(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

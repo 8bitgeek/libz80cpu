@@ -34,6 +34,11 @@ SOFTWARE.
 #ifndef __LIBZ80CPU_OPCODES_H__
 #define __LIBZ80CPU_OPCODES_H__
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #define OP_IXPREFIX(Byte)	((0xFF & (Byte)) == 0xDD)
 #define OP_IYPREFIX(Byte)	((0xFF & (Byte)) == 0xFD)
 
@@ -181,5 +186,9 @@ SOFTWARE.
 #define OPARG_SF_C(Byte)        ((0x18 & (Byte)) == 0x18)
 
 #define OPPARM_N(Byte)		(0x38 & Byte)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
