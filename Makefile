@@ -2,10 +2,11 @@
 TARGET=libz80cpu.a
 
 # GCC toolchain programs.
-CC = ${LIBZ80_GCC}gcc
+CPP = ${LIBZ80_GCC}g++
 AR = ${LIBZ80_GCC}ar
 
 # C compilation directives
+CFLAGS += -I./src
 CFLAGS += -c
 CFLAGS += -Wall
 CFLAGS += ${LIBZ80_CFLAGS}
@@ -17,23 +18,22 @@ AFLAGS += rcs
 INCLUDE += -I inc
 
 # Z/80 CPU Source Files
-C_SRC  += src/cpu.c
+CPP_SRC  += src/sim80mem.cpp
+CPP_SRC  += src/sim80vm_i8080.cpp
+CPP_SRC  += src/sim80vm_z80a.cpp
+CPP_SRC  += src/sim80vm.cpp
+
 
 # Object files to build.
-OBJS  = $(AS_SRC:.S=.o)
-OBJS += $(C_SRC:.c=.o)
+OBJS += $(CPP_SRC:.cpp=.o)
 
 # Default rule to build the whole project.
 .PHONY: all
 all: $(TARGET)
 
-# Rule to build assembly files.
-%.o: %.S
-	$(CC) -x assembler-with-cpp $(ASFLAGS) $(INCLUDE) $< -o $@
-
 # Rule to compile C files.
-%.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@
+%.o: %.cpp
+	$(CPP) $(CFLAGS) $(INCLUDE) $< -o $@
 
 # Rule to create an ELF file from the compiled object files.
 $(TARGET): $(OBJS)
