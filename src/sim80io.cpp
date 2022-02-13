@@ -29,37 +29,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ******************************************************************************/
-#include "sim80vm.h"
 
-sim80vm::sim80vm(sim80mem* m,sim80io* io)
- : rst_vector(0)
- , opcode(0)
- , m_mem(m)
- , m_io(io)
+#include <sim80io.h>
+
+sim80io::~sim80io()
 {
 }
-
-
-sim80vm::~sim80vm()
-{
-}
-
-
-void sim80vm::run1(void)
-{
-
-	if ( rst_vector > 0 )
-	{
-		setFlagI(0);
-		opcode = rst_vector;
-		rst_vector = (-1);
-	}
-	else
-	{
-		opcode = mem()->get(getRegPC());
-	}
-	run2();
-	setRegPC( getRegPC()+1 );	 /** increment the PC */
-}
-
-

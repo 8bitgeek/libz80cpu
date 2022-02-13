@@ -37,7 +37,7 @@ SOFTWARE.
 class sim80vm_i8080 : public sim80vm
 {
 	public:
-		sim80vm_i8080(sim80mem* m);
+		sim80vm_i8080(sim80mem* msim80mem,sim80io* io);
 		~sim80vm_i8080();
 		
 		/** get registers... */

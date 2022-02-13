@@ -34,8 +34,8 @@ SOFTWARE.
 
 #define inherited sim80vm_i8080
 
-sim80vm_z80a::sim80vm_z80a(sim80mem* m)
- : sim80vm_i8080(m)
+sim80vm_z80a::sim80vm_z80a(sim80mem* m,sim80io* io)
+ : sim80vm_i8080(m,io)
  , index(reg_HL)
  , _f(0)
  , N(0)
@@ -108,9 +108,9 @@ uint8_t* sim80vm_z80a::reg8ptr(uint8_t i,uint8_t disp)
 		case 0x05: return &l; break;
 		case 0x06: 
 			switch ( index ) {
-				case reg_HL: return mem->ptr((uint16_t)((h<<8)|l)); break;
-				case reg_IX: return mem->ptr(ix+disp); break;
-				case reg_IY: return mem->ptr(iy+disp); break;
+				case reg_HL: return mem()->ptr((uint16_t)((h<<8)|l)); break;
+				case reg_IX: return mem()->ptr(ix+disp); break;
+				case reg_IY: return mem()->ptr(iy+disp); break;
 			}
 			break;
 		case 0x07: return &a; break;
@@ -126,32 +126,32 @@ void sim80vm_z80a::op_flow()
 		/** special opcodes */
 		
 		case 0x10:					/** djnz #disp */
-			if (--b) pc += (int8_t)(mem->get(++pc));
+			if (--b) pc += (int8_t)(mem()->get(++pc));
 			++pc;
 			break;
 			
 		case 0x18:					/** jr #disp */
-			pc += (int8_t)(mem->get(++pc));
+			pc += (int8_t)(mem()->get(++pc));
 			++pc;
 			break;
 			
 		case 0x20:					/** jr	nz,#disp */
-			if (!Z) pc += (int8_t)(mem->get(++pc));
+			if (!Z) pc += (int8_t)(mem()->get(++pc));
 			++pc;
 			break;
 			
 		case 0x28:					/** jr	z,#disp */
-			if (Z) pc += (int8_t)(mem->get(++pc));
+			if (Z) pc += (int8_t)(mem()->get(++pc));
 			++pc;
 			break;
 			
 		case 0x30:					/** jr	nc,#disp */
-			if (!CY) pc += (int8_t)(mem->get(++pc));
+			if (!CY) pc += (int8_t)(mem()->get(++pc));
 			++pc;
 			break;
 			
 		case 0x38:					/** jr	c,#disp */
-			if (CY) pc += (int8_t)(mem->get(++pc));
+			if (CY) pc += (int8_t)(mem()->get(++pc));
 			++pc;
 			break;
 
@@ -163,8 +163,8 @@ void sim80vm_z80a::op_flow()
 
 void sim80vm_z80a::op_bits()
 {
-	opcode = mem->get(++pc); 								/** skip lead-in (0xCB) part of opcode and get the Z/80 opcode */
-	uint8_t disp=(index==reg_HL?0:mem->get(++pc)); 	/** displacement added to index IX,IY registers */
+	opcode = mem()->get(++pc); 								/** skip lead-in (0xCB) part of opcode and get the Z/80 opcode */
+	uint8_t disp=(index==reg_HL?0:mem()->get(++pc)); 	/** displacement added to index IX,IY registers */
 	switch(opcode>>6) {
 		case 0x00:						/** rotate... */
 			switch(opcode>>3) {
@@ -324,14 +324,14 @@ void sim80vm_z80a::op_ix()
 {
 	/** switch to IX addressing mode.. */
 	index = reg_IX;
-	opcode = mem->get(++pc);
+	opcode = mem()->get(++pc);
 }
 
 void sim80vm_z80a::op_iy()
 {
 	/** switch to IY addressing mode.. */
 	index = reg_IY;
-	opcode = mem->get(++pc);
+	opcode = mem()->get(++pc);
 }
 
 void sim80vm_z80a::op_special()
@@ -365,7 +365,7 @@ void sim80vm_z80a::op_special()
 
 void sim80vm_z80a::op_interrupts()
 {
-	opcode = mem->get(++pc);
+	opcode = mem()->get(++pc);
 	switch(opcode)
 	{
 		case 0x44:					/** NEG - Two's complement accumulator */
@@ -375,8 +375,8 @@ void sim80vm_z80a::op_interrupts()
 		case 0x45:					/** RETN - return from non maskable interrupt */
 		{
 			/** FIXME: need to code z80 interrupt modes - just doing normal return here */
-			pc = (mem->get(sp++));
-			pc |= (mem->get(sp++)<<8);
+			pc = (mem()->get(sp++));
+			pc |= (mem()->get(sp++)<<8);
 			pc--;
 		}
 		break;
@@ -388,8 +388,8 @@ void sim80vm_z80a::op_interrupts()
 		case 0x4d:					/** RETI - return from interrupt */
 		{
 			/** FIXME: need to code z80 interrupt modes - just doing normal return here */
-			pc = (mem->get(sp++));
-			pc |= (mem->get(sp++)<<8);
+			pc = (mem()->get(sp++));
+			pc |= (mem()->get(sp++)<<8);
 			pc--;
 		}
 		break;
@@ -406,7 +406,7 @@ void sim80vm_z80a::op_interrupts()
 		case 0x67:					/** RRD */
 		{
 			uint16_t hl = (uint16_t)((h<<8)|l);
-			uint8_t m = mem->get(hl);
+			uint8_t m = mem()->get(hl);
 			uint8_t t = m;
 			m &= ~0x03;
 			m |= (m&0x0c)>>2;
@@ -417,13 +417,13 @@ void sim80vm_z80a::op_interrupts()
 			zero(a);
 			sign(a);
 			parity(a);
-			mem->put(hl,m);
+			mem()->put(hl,m);
 		}
 		break;
 		case 0x6f:					/** RLD */
 		{
 			uint16_t hl = (uint16_t)((h<<8)|l);
-			uint8_t m = mem->get(hl);
+			uint8_t m = mem()->get(hl);
 			uint8_t t = m;
 			m &= ~0x03;
 			m |= (a&0x03);
@@ -434,7 +434,7 @@ void sim80vm_z80a::op_interrupts()
 			zero(a);
 			sign(a);
 			parity(a);
-			mem->put(hl,m);
+			mem()->put(hl,m);
 		}
 		break;
 		case 0xa0:					/** LDI */
@@ -442,7 +442,7 @@ void sim80vm_z80a::op_interrupts()
 			uint16_t hl = (uint16_t)((h<<8)|l);
 			uint16_t de = (uint16_t)((d<<8)|e);
 			uint16_t bc = (uint16_t)((b<<8)|c);
-			mem->put(de++,mem->get(hl++));
+			mem()->put(de++,mem()->get(hl++));
 			--bc;
 			b = (bc>>8)&0x00ff;
 			c = (bc&0xff);
@@ -456,7 +456,7 @@ void sim80vm_z80a::op_interrupts()
 		{
 			uint16_t hl = (uint16_t)((h<<8)|l);
 			uint16_t bc = (uint16_t)((b<<8)|c);
-			uint8_t t = mem->get(hl++);
+			uint8_t t = mem()->get(hl++);
 			--bc;
 			Z = 0;
 			if (a == t)
@@ -477,7 +477,7 @@ void sim80vm_z80a::op_interrupts()
 			uint16_t hl = (uint16_t)((h<<8)|l);
 			uint16_t de = (uint16_t)((d<<8)|e);
 			uint16_t bc = (uint16_t)((b<<8)|c);
-			mem->put(de--,mem->get(hl--));
+			mem()->put(de--,mem()->get(hl--));
 			--bc;
 			b = (bc>>8)&0x00ff;
 			c = (bc&0xff);
@@ -491,7 +491,7 @@ void sim80vm_z80a::op_interrupts()
 		{
 			uint16_t hl = (uint16_t)((h<<8)|l);
 			uint16_t bc = (uint16_t)((b<<8)|c);
-			uint8_t t = mem->get(hl--);
+			uint8_t t = mem()->get(hl--);
 			--bc;
 			Z = 0;
 			if (a == t)
@@ -514,7 +514,7 @@ void sim80vm_z80a::op_interrupts()
 			uint16_t bc = (uint16_t)((b<<8)|c);
 			do
 			{
-				mem->put(de++,mem->get(hl++));
+				mem()->put(de++,mem()->get(hl++));
 			} while ( --bc != 0 );
 			b = (bc>>8)&0x00ff;
 			c = (bc&0xff);
@@ -531,7 +531,7 @@ void sim80vm_z80a::op_interrupts()
 			uint8_t t;
 			do
 			{
-				t = mem->get(hl++);
+				t = mem()->get(hl++);
 				--bc;
 				Z = 0;
 				if (a == t)
@@ -555,7 +555,7 @@ void sim80vm_z80a::op_interrupts()
 			uint16_t bc = (uint16_t)((b<<8)|c);
 			do
 			{
-				mem->put(de--,mem->get(hl--));
+				mem()->put(de--,mem()->get(hl--));
 			} while ( --bc != 0 );
 			b = (bc>>8)&0x00ff;
 			c = (bc&0xff);
@@ -572,7 +572,7 @@ void sim80vm_z80a::op_interrupts()
 			uint8_t t;
 			do
 			{
-				t = mem->get(hl--);
+				t = mem()->get(hl--);
 				--bc;
 				Z = 0;
 				if (a == t)
@@ -592,7 +592,7 @@ void sim80vm_z80a::op_interrupts()
 		default:
 		{
 			/** bad opcode */
-			opcode = mem->get(--pc);
+			opcode = mem()->get(--pc);
 			inherited::exec_opcode();
 		}
 		break;
@@ -607,11 +607,11 @@ void sim80vm_z80a::op_stack()
 		switch (opcode)
 		{
 			case 0xe5:				 /* PUSH index */
-				mem->put(--sp,getIndex()>>8);
-				mem->put(--sp,getIndex()&0xFF);
+				mem()->put(--sp,getIndex()>>8);
+				mem()->put(--sp,getIndex()&0xFF);
 				break;
 			case 0xe1:				 /* POP index */
-				putIndex((mem->get(sp)&0xFF)|(mem->get(sp+1)<<8));
+				putIndex((mem()->get(sp)&0xFF)|(mem()->get(sp+1)<<8));
 				sp += 2;
 				break;
 			case 0xf9:				 /* SP <- index */
@@ -619,10 +619,10 @@ void sim80vm_z80a::op_stack()
 				break;
 			case 0xe3:				 /* XTHL */
 				{
-					uint16_t l = mem->get(sp);
-					mem->put(sp,getIndex()&0xFF);
-					uint16_t h = mem->get(sp+1);
-					mem->put(sp+1,getIndex()>>8);
+					uint16_t l = mem()->get(sp);
+					mem()->put(sp,getIndex()&0xFF);
+					uint16_t h = mem()->get(sp+1);
+					mem()->put(sp+1,getIndex()>>8);
 					putIndex((h<<8)|l);
 				}
 				break;
@@ -646,10 +646,10 @@ void sim80vm_z80a::op_compare()
 		{
 			case 0xbe:				 /* CMP (HL) */
 				Z = 0;
-				if (a == mem->get(getIndex(mem->get(++pc))))
+				if (a == mem()->get(getIndex(mem()->get(++pc))))
 					Z = 1;
 				CY = 0;
-				if (a < mem->get(getIndex(mem->get(++pc))))
+				if (a < mem()->get(getIndex(mem()->get(++pc))))
 					CY = 1;
 				sign(a);
 				auxcarry(a);
@@ -676,7 +676,7 @@ void sim80vm_z80a::op_or()
 			case 0xb6:				 /* ORA (HL) */
 				CY = 0;
 				AC = 0;
-				a = a | mem->get(getIndex(mem->get(++pc)));
+				a = a | mem()->get(getIndex(mem()->get(++pc)));
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -703,7 +703,7 @@ void sim80vm_z80a::op_xor()
 			case 0xae:				 /* XRA (HL) */
 				CY = 0;
 				AC = 0;
-				a = a ^ mem->get(getIndex(mem->get(++pc)));
+				a = a ^ mem()->get(getIndex(mem()->get(++pc)));
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -729,7 +729,7 @@ void sim80vm_z80a::op_and()
 		{
 			case 0xa6:				 /* ANA (HL) */
 				CY = 0;
-				a = a & mem->get(getIndex(mem->get(++pc)));
+				a = a & mem()->get(getIndex(mem()->get(++pc)));
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -840,11 +840,11 @@ void sim80vm_z80a::op_dcr()
 		{
 			case 0x35:				 /* DCR (HL) */
 			{
-				uint16_t memory = getIndex(mem->get(++pc));
-				carry(mem->put(memory,mem->get(memory)-1));
-				zero(mem->get(memory));
-				sign(mem->get(memory));
-				auxcarry(mem->get(memory));
+				uint16_t memory = getIndex(mem()->get(++pc));
+				carry(mem()->put(memory,mem()->get(memory)-1));
+				zero(mem()->get(memory));
+				sign(mem()->get(memory));
+				auxcarry(mem()->get(memory));
 									/* other flags */
 			}
 			break;
@@ -868,11 +868,11 @@ void sim80vm_z80a::op_inr()
 		{
 			case 0x34:				 /* INR (HL) */
 			{
-				uint16_t memory = getIndex(mem->get(++pc));
-				carry(mem->put( memory, mem->get(memory)+1));
-				zero(mem->get(memory));
-				sign(mem->get(memory));
-				auxcarry(mem->get(memory));
+				uint16_t memory = getIndex(mem()->get(++pc));
+				carry(mem()->put( memory, mem()->get(memory)+1));
+				zero(mem()->get(memory));
+				sign(mem()->get(memory));
+				auxcarry(mem()->get(memory));
 									/* other flags */
 			}
 			break;
@@ -897,20 +897,20 @@ void sim80vm_z80a::op_sub()
 		switch(opcode)
 		{
 			case 0x96:				 /* SUB (HL) */
-				memory = getIndex(mem->get(++pc));
+				memory = getIndex(mem()->get(++pc));
 				temp=a;
-				carry(temp - mem->get(memory));
-				a = a - mem->get(memory);
+				carry(temp - mem()->get(memory));
+				a = a - mem()->get(memory);
 				zero(a);
 				sign(a);
 				auxcarry(a);
 									/* other flags */
 				break;
 			case 0x9e:				 /* SBB (HL) */
-				memory = getIndex(mem->get(++pc));
+				memory = getIndex(mem()->get(++pc));
 				temp=a;
-				a = a - mem->get(memory) - CY;
-				carry(temp-mem->get(memory)-CY);
+				a = a - mem()->get(memory) - CY;
+				carry(temp-mem()->get(memory)-CY);
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -937,21 +937,21 @@ void sim80vm_z80a::op_add()
 		switch (opcode)
 		{
 			case 0x8e:				 /* ADC (HL) */
-				memory = getIndex(mem->get(++pc));
+				memory = getIndex(mem()->get(++pc));
 				temp=a;
-				a = a + mem->get(memory) + CY;
-				carry(temp+a+mem->get(memory)+CY);
+				a = a + mem()->get(memory) + CY;
+				carry(temp+a+mem()->get(memory)+CY);
 				zero(a);
 				sign(a);
 				auxcarry(a);
 									/* do other things */
 				break;
 			case 0x86:				 /* ADD (HL) */
-				memory = getIndex(mem->get(++pc));
+				memory = getIndex(mem()->get(++pc));
 				temp=a;
-				temp+=mem->get(memory);
+				temp+=mem()->get(memory);
 				carry(temp);
-				a += mem->get(memory);
+				a += mem()->get(memory);
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -978,60 +978,60 @@ void sim80vm_z80a::op_mov()
 		switch(opcode)
 		{
 			case 0x46:				 /* MOV B,(HL) */
-				memory = getIndex(mem->get(++pc));
-				b = mem->get(memory);
+				memory = getIndex(mem()->get(++pc));
+				b = mem()->get(memory);
 				break;
 			case 0x4e:				 /* MOV C,(HL) */
-				memory = getIndex(mem->get(++pc));
-				c = mem->get(memory);
+				memory = getIndex(mem()->get(++pc));
+				c = mem()->get(memory);
 				break;
 			case 0x56:				 /* MOV D,(HL) */
-				memory = getIndex(mem->get(++pc));
-				d = mem->get(memory);
+				memory = getIndex(mem()->get(++pc));
+				d = mem()->get(memory);
 				break;
 			case 0x5e:				 /* MOV E,(HL) */
-				memory = getIndex(mem->get(++pc));
-				e = mem->get(memory);
+				memory = getIndex(mem()->get(++pc));
+				e = mem()->get(memory);
 				break;
 			case 0x66:				 /* MOV H,(HL) */
-				memory = getIndex(mem->get(++pc));
-				h = mem->get(memory);
+				memory = getIndex(mem()->get(++pc));
+				h = mem()->get(memory);
 				break;
 			case 0x6e:				 /* MOV L,(HL) */
-				memory = getIndex(mem->get(++pc));
-				l = mem->get(memory);
+				memory = getIndex(mem()->get(++pc));
+				l = mem()->get(memory);
 				break;
 			case 0x7e:				 /* MOV A,(HL) */
-				memory = getIndex(mem->get(++pc));
-				a = mem->get(memory);
+				memory = getIndex(mem()->get(++pc));
+				a = mem()->get(memory);
 				break;
 			case 0x70:				 /* MOV (HL),B */
-				memory = getIndex(mem->get(++pc));
-				mem->put(memory,b);
+				memory = getIndex(mem()->get(++pc));
+				mem()->put(memory,b);
 				break;
 			case 0x71:				 /* MOV (HL),C */
-				memory = getIndex(mem->get(++pc));
-				mem->put(memory,c);
+				memory = getIndex(mem()->get(++pc));
+				mem()->put(memory,c);
 				break;
 			case 0x72:				 /* MOV (HL),D */
-				memory = getIndex(mem->get(++pc));
-				mem->put(memory,d);
+				memory = getIndex(mem()->get(++pc));
+				mem()->put(memory,d);
 				break;
 			case 0x73:				 /* MOV (HL),E */
-				memory = getIndex(mem->get(++pc));
-				mem->put(memory,e);
+				memory = getIndex(mem()->get(++pc));
+				mem()->put(memory,e);
 				break;
 			case 0x74:				 /* MOV (HL),H */
-				memory = getIndex(mem->get(++pc));
-				mem->put(memory,h);
+				memory = getIndex(mem()->get(++pc));
+				mem()->put(memory,h);
 				break;
 			case 0x75:				 /* MOV (HL),L */
-				memory = getIndex(mem->get(++pc));
-				mem->put(memory,l);
+				memory = getIndex(mem()->get(++pc));
+				mem()->put(memory,l);
 				break;
 			case 0x77:				 /* MOV (HL),A */
-				memory = getIndex(mem->get(++pc));
-				mem->put(memory,a);
+				memory = getIndex(mem()->get(++pc));
+				mem()->put(memory,a);
 				break;
 			default:
 				bad_opcode(getRegPC(),opcode);
@@ -1050,25 +1050,25 @@ void sim80vm_z80a::op_lxi()
 	switch(opcode)
 	{
 		case 0x36:				 /* ld (i?),dddd */
-			mem->put( getIndex(), mem->get(++pc) );
+			mem()->put( getIndex(), mem()->get(++pc) );
 			break;
 		case 0x21:				 /* ld i?,dddd */
-			putIndex(mem->get(pc+1) | (mem->get(pc+2)<<8));
+			putIndex(mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 			pc+=2;
 			break;
 		case 0x2a:				 /* ld i?,(addr) */
 			{
-				uint16_t memory = mem->get(pc+1) | (mem->get(pc+2)<<8);
+				uint16_t memory = mem()->get(pc+1) | (mem()->get(pc+2)<<8);
 				pc+=2;
-				putIndex(mem->get(memory)|mem->get(memory+1));
+				putIndex(mem()->get(memory)|mem()->get(memory+1));
 			}
 			break;
 		case 0x22:				 /* ld (addr),i? */
 			{
-				uint16_t memory = mem->get(pc+1) | (mem->get(pc+2)<<8);
+				uint16_t memory = mem()->get(pc+1) | (mem()->get(pc+2)<<8);
 				pc+=2;
-				mem->put(memory,getIndex()&0xFF);
-				mem->put(memory+1,getIndex()>>8);
+				mem()->put(memory,getIndex()&0xFF);
+				mem()->put(memory+1,getIndex()>>8);
 			}
 			break;
 		default:

@@ -37,7 +37,7 @@ SOFTWARE.
 class sim80vm_z80a : public sim80vm_i8080
 {
 	public:
-		sim80vm_z80a(sim80mem* m);
+		sim80vm_z80a(sim80mem* m,sim80io* io);
 	
 		~sim80vm_z80a();
 		bool getFlagN()				{return N;}

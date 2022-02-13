@@ -33,11 +33,13 @@ SOFTWARE.
 #define SIM80VM_H
 
 #include <sim80mem.h>
+#include <sim80io.h>
 
 class sim80vm 
 {
 	public:
-		sim80vm(sim80mem* m);
+
+		sim80vm(sim80mem* m,sim80io* io);
 	
 		~sim80vm();
 	
@@ -74,10 +76,12 @@ class sim80vm
 		virtual bool getFlagCY()=0;
 	
 	protected:
+
 		virtual void bad_opcode(uint16_t addr, uint8_t) {halt();}
 		virtual void halt() {for(;;);}
     
 	protected:
+
 		/** set registers... */
 		virtual void setRegA(uint8_t reg)=0;
 		virtual void setRegF(uint8_t reg)=0;
@@ -126,14 +130,24 @@ class sim80vm
 		virtual void rstNMI() {rst7();} /* NMI */
 
 	protected:
-		virtual	uint16_t getIndex()=0;
-		virtual void putIndex(uint16_t index)=0;
-		virtual void exec_opcode()=0;
-		virtual uint8_t* reg8ptr(uint8_t i,uint8_t disp=0)=0;	/** get 8-bit register from opcode register index.. */
+
+		virtual	uint16_t 	getIndex()=0;
+		virtual void 		putIndex(uint16_t index)=0;
+		virtual void 		exec_opcode()=0;
 		
-		sim80mem*	mem; 						/** memory class */
-		uint8_t 	opcode;						/** opcode read from program memory */
+		/** get 8-bit register from opcode register index.. */
+		virtual uint8_t* 	reg8ptr(uint8_t i,uint8_t disp=0)=0;	
+		
 		int 		rst_vector;					/** reset (interrupt) vector */
+		uint8_t 	opcode;						/** opcode read from program memory */
+
+		sim80mem*	mem()	{return m_mem;}		/** memory class */
+		sim80io*	io()	{return m_io;}		/** I/O class */
+
+	private:
+
+		sim80mem*	m_mem; 						/** memory class */
+		sim80io*	m_io; 						/** I/O class */
 };
 
 #endif

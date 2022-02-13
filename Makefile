@@ -6,7 +6,6 @@ CPP = ${LIBZ80_GCC}g++
 AR = ${LIBZ80_GCC}ar
 
 # C compilation directives
-CFLAGS += -I./src
 CFLAGS += -c
 CFLAGS += -Wall
 CFLAGS += ${LIBZ80_CFLAGS}
@@ -18,6 +17,7 @@ AFLAGS += rcs
 INCLUDE += -I inc
 
 # Z/80 CPU Source Files
+CPP_SRC  += src/sim80io.cpp
 CPP_SRC  += src/sim80mem.cpp
 CPP_SRC  += src/sim80vm_i8080.cpp
 CPP_SRC  += src/sim80vm_z80a.cpp

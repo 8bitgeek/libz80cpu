@@ -29,37 +29,25 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ******************************************************************************/
-#include "sim80vm.h"
+#ifndef SIM80IO_H
+#define SIM80IO_H
 
-sim80vm::sim80vm(sim80mem* m,sim80io* io)
- : rst_vector(0)
- , opcode(0)
- , m_mem(m)
- , m_io(io)
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+/**
+ ** Memory array pure virtual interface
+ */
+
+class sim80io 
 {
-}
+	public:
+		sim80io() {}
+		virtual ~sim80io();
+	
+		virtual uint8_t   	get(uint8_t addr)=0;
+		virtual uint8_t		put(uint8_t addr, uint8_t data)=0;
+};
 
-
-sim80vm::~sim80vm()
-{
-}
-
-
-void sim80vm::run1(void)
-{
-
-	if ( rst_vector > 0 )
-	{
-		setFlagI(0);
-		opcode = rst_vector;
-		rst_vector = (-1);
-	}
-	else
-	{
-		opcode = mem()->get(getRegPC());
-	}
-	run2();
-	setRegPC( getRegPC()+1 );	 /** increment the PC */
-}
-
-
+#endif

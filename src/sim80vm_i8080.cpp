@@ -33,8 +33,8 @@ SOFTWARE.
 
 #define inherited sim80vm
 
-sim80vm_i8080::sim80vm_i8080(sim80mem* m)
-: sim80vm(m)
+sim80vm_i8080::sim80vm_i8080(sim80mem* m,sim80io* io)
+: sim80vm(m,io)
 , f(0x2) /* bit 2 is always 1 */
 , w(0)
 , pc(0)
@@ -65,7 +65,7 @@ uint8_t* sim80vm_i8080::reg8ptr(uint8_t i,uint8_t disp)
 		case 0x03: return &e; break;
 		case 0x04: return &h; break;
 		case 0x05: return &l; break;
-		case 0x06: return mem->ptr((uint16_t)((h<<8)|l)); break;
+		case 0x06: return mem()->ptr((uint16_t)((h<<8)|l)); break;
 		case 0x07: return &a; break;
 		default: return NULL; break;
 	}
@@ -149,44 +149,44 @@ void sim80vm_i8080::op_stack()
 	switch (opcode)
 	{
 		case 0xc5:				 /* PUSH BC */
-			mem->put(--sp,b);
-			mem->put(--sp,c);
+			mem()->put(--sp,b);
+			mem()->put(--sp,c);
 			break;
 
 		case 0xd5:				 /* PUSH DE */
-			mem->put(--sp,d);
-			mem->put(--sp,e);
+			mem()->put(--sp,d);
+			mem()->put(--sp,e);
 			break;
 
 		case 0xe5:				 /* PUSH HL */
-			mem->put(--sp,h);
-			mem->put(--sp,l);
+			mem()->put(--sp,h);
+			mem()->put(--sp,l);
 			break;
 
 		case 0xc1:				 /* POP BC */
-			c = mem->get(sp++);
-			b = mem->get(sp++);
+			c = mem()->get(sp++);
+			b = mem()->get(sp++);
 			break;
 
 		case 0xd1:				 /* POP DE */
-			e = mem->get(sp++);
-			d = mem->get(sp++);
+			e = mem()->get(sp++);
+			d = mem()->get(sp++);
 			break;
 
 		case 0xe1:				 /* POP HL */
-			l = mem->get(sp++);
-			h = mem->get(sp++);
+			l = mem()->get(sp++);
+			h = mem()->get(sp++);
 			break;
 
 		case 0xf5:				 /* PUSH PSW */
-			mem->put(--sp, a);
+			mem()->put(--sp, a);
 								 /* flags */
-			mem->put(--sp, ((1*CY)+(2*1)+(4*P)+(8*0)+(16*AC)+(32*0)+(64*Z)+(128*S)));
+			mem()->put(--sp, ((1*CY)+(2*1)+(4*P)+(8*0)+(16*AC)+(32*0)+(64*Z)+(128*S)));
 			break;
 
 		case 0xf1:				 /* POP PSW */
-			temp = mem->get(sp++);
-			a = mem->get(sp++);
+			temp = mem()->get(sp++);
+			a = mem()->get(sp++);
 			S = (temp & 128)/128;
 			Z = (temp & 64)/64;
 			AC = (temp & 16)/16;
@@ -200,12 +200,12 @@ void sim80vm_i8080::op_stack()
 
 		case 0xe3:				 /* XTHL */
 			temp = l;
-			l = mem->get(sp);
-			mem->put(sp,temp);
+			l = mem()->get(sp);
+			mem()->put(sp,temp);
 
 			temp = h;
-			h = mem->get(sp+1);
-			mem->put(sp+1,temp);
+			h = mem()->get(sp+1);
+			mem()->put(sp+1,temp);
 			break;
 
 		default:
@@ -229,12 +229,12 @@ void sim80vm_i8080::op_io()
 	{
 		case 0xd3:				 /* OUT port */
 			/* get port */
-			temp = mem->get(++pc);
+			temp = mem()->get(++pc);
 			break;
 
 		case 0xdb:				 /* IN port */
 			/* get port */
-			temp = mem->get(++pc);
+			temp = mem()->get(++pc);
 			break;
 
 		default:
@@ -253,9 +253,9 @@ void sim80vm_i8080::op_flow()
 		case 0xcd:				 /* CALL addr */
 
 			temp = pc + 3;		 /* bypass the call instr */
-			mem->put(--sp,(temp&0xFF00)>>8);
-			mem->put(--sp,temp&0x00FF);
-			pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+			mem()->put(--sp,(temp&0xFF00)>>8);
+			mem()->put(--sp,temp&0x00FF);
+			pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 			++pc;
 
 			break;
@@ -264,9 +264,9 @@ void sim80vm_i8080::op_flow()
 			if (Z == 0)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -279,9 +279,9 @@ void sim80vm_i8080::op_flow()
 			if (Z == 1)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -294,9 +294,9 @@ void sim80vm_i8080::op_flow()
 			if (CY == 0)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -309,9 +309,9 @@ void sim80vm_i8080::op_flow()
 			if (CY == 1)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -324,9 +324,9 @@ void sim80vm_i8080::op_flow()
 			if (P == 0)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -339,9 +339,9 @@ void sim80vm_i8080::op_flow()
 			if (P == 1)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -354,9 +354,9 @@ void sim80vm_i8080::op_flow()
 			if (S == 0)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -369,9 +369,9 @@ void sim80vm_i8080::op_flow()
 			if (S == 1)
 			{
 				temp = pc + 3;
-				mem->put(--sp, (temp&0xFF00)>>8);
-				mem->put(--sp, temp&0x00FF);
-				pc = (mem->get(pc+1) | (mem->get(pc+2)<<8));
+				mem()->put(--sp, (temp&0xFF00)>>8);
+				mem()->put(--sp, temp&0x00FF);
+				pc = (mem()->get(pc+1) | (mem()->get(pc+2)<<8));
 				++pc;
 			}
 			else
@@ -381,8 +381,8 @@ void sim80vm_i8080::op_flow()
 			break;
 
 		case 0xc9:				 /* RET */
-			pc = (mem->get(sp++));
-			pc |= (mem->get(sp++)<<8);
+			pc = (mem()->get(sp++));
+			pc |= (mem()->get(sp++)<<8);
 			pc--;
 
 			break;
@@ -390,8 +390,8 @@ void sim80vm_i8080::op_flow()
 		case 0xc0:				 /* RET NZ */
 			if (Z == 0)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -399,8 +399,8 @@ void sim80vm_i8080::op_flow()
 		case 0xc8:				 /* RET Z */
 			if (Z == 1)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -408,8 +408,8 @@ void sim80vm_i8080::op_flow()
 		case 0xd0:				 /* RET NC */
 			if (CY == 0)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -417,8 +417,8 @@ void sim80vm_i8080::op_flow()
 		case 0xd8:				 /* RET C */
 			if (CY == 1)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -426,8 +426,8 @@ void sim80vm_i8080::op_flow()
 		case 0xe0:				 /* RET PO */
 			if (P == 0)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -435,8 +435,8 @@ void sim80vm_i8080::op_flow()
 		case 0xe8:				 /* RET PE */
 			if (P == 1)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -444,8 +444,8 @@ void sim80vm_i8080::op_flow()
 		case 0xf0:				 /* RET P */
 			if (S == 0)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -453,8 +453,8 @@ void sim80vm_i8080::op_flow()
 		case 0xf8:				 /* RET M */
 			if (S == 1)
 			{
-				pc = (mem->get(sp++));
-				pc |= (mem->get(sp++)<<8);
+				pc = (mem()->get(sp++));
+				pc |= (mem()->get(sp++)<<8);
 				pc--;
 			}
 			break;
@@ -466,125 +466,125 @@ void sim80vm_i8080::op_flow()
 
 		case 0xc7:				 /* RST 0 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 0;
 			pc--;
 			break;
 
 		case 0xcf:				 /* RST 1 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 8;
 			pc--;
 			break;
 
 		case 0xd7:				 /* RST 2 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 16;
 			pc--;
 			break;
 
 		case 0xdf:				 /* RST 3 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 24;
 			pc--;
 			break;
 
 		case 0xe7:				 /* RST 4 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 32;
 			pc--;
 			break;
 
 		case 0xef:				 /* RST 5 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 40;
 			pc--;
 			break;
 
 		case 0xf7:				 /* RST 6 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 48;
 			pc--;
 			break;
 
 		case 0xff:				 /* RST 7 */
 			++pc;
-			mem->put(--sp,(pc&0xFF00)>>8);
-			mem->put(--sp,pc&0x00FF);
+			mem()->put(--sp,(pc&0xFF00)>>8);
+			mem()->put(--sp,pc&0x00FF);
 			pc = 56;
 			pc--;
 			break;
 
 		case 0xc3:				 /* JMP XXYY */
 								 /* -1 since pc is incremented at end of this loop */
-			pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+			pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			break;
 
 		case 0xc2:				 /* JNZ XXYY */
 			if (Z==0)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc+=2;			 /* else ignore next two op codes */
 			break;
 
 		case 0xca:				 /* JZ XXYY */
 			if (Z==1)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc += 2;
 			break;
 
 		case 0xd2:				 /* JNC XXYY */
 			if (CY==0)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc += 2;
 			break;
 
 		case 0xda:				 /* JC XXYY */
 			if (CY == 1)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc += 2;
 			break;
 
 		case 0xe2:				 /* JPO XXYY */
 			if (P == 0)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc += 2;
 			break;
 
 		case 0xea:				 /* JPE XXYY */
 			if (P == 1)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc += 2;
 			break;
 
 		case 0xf2:				 /* JP XXYY (S == 0, positive) */
 			if (S == 0)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc += 2;
 			break;
 
 		case 0xfa:				 /* JM XXYY (S == 1, minus) */
 			if (S == 1)
-				pc = (mem->get(pc+1) | ((mem->get(pc+2))<<8) ) -1;
+				pc = (mem()->get(pc+1) | ((mem()->get(pc+2))<<8) ) -1;
 			else
 				pc += 2;
 			break;
@@ -710,10 +710,10 @@ void sim80vm_i8080::op_compare()
 
 		case 0xbe:				 /* CMP (HL) */
 			Z = 0;
-			if (a == mem->get((h<<8)| l))
+			if (a == mem()->get((h<<8)| l))
 				Z = 1;
 			CY = 0;
-			if (a < mem->get((h<<8)| l))
+			if (a < mem()->get((h<<8)| l))
 				CY = 1;
 			sign(a);
 			auxcarry(a);
@@ -725,7 +725,7 @@ void sim80vm_i8080::op_compare()
 
 		case 0xfe:				 /* CPI data */
 			Z = 0;
-			temp = mem->get(++pc);
+			temp = mem()->get(++pc);
 			if (a == temp)
 				Z = 1;
 			CY = 0;
@@ -804,7 +804,7 @@ void sim80vm_i8080::op_or()
 		case 0xb6:				 /* ORA (HL) */
 			CY = 0;
 			AC = 0;
-			a = a | mem->get((h<<8)| l);
+			a = a | mem()->get((h<<8)| l);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -822,7 +822,7 @@ void sim80vm_i8080::op_or()
 		case 0xf6:				 /* ORI data */
 			CY = 0;
 			AC = 0;
-			a = a | mem->get(++pc);
+			a = a | mem()->get(++pc);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -897,7 +897,7 @@ void sim80vm_i8080::op_xor()
 		case 0xae:				 /* XRA (HL) */
 			CY = 0;
 			AC = 0;
-			a = a ^ mem->get((h<<8)| l);
+			a = a ^ mem()->get((h<<8)| l);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -915,7 +915,7 @@ void sim80vm_i8080::op_xor()
 		case 0xee:				 /* XRI data */
 			CY = 0;
 			AC = 0;
-			a = a ^ mem->get(++pc);
+			a = a ^ mem()->get(++pc);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -983,7 +983,7 @@ void sim80vm_i8080::op_and()
 
 		case 0xa6:				 /* ANA (HL) */
 			CY = 0;
-			a = a & mem->get((h<<8)| l);
+			a = a & mem()->get((h<<8)| l);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1000,7 +1000,7 @@ void sim80vm_i8080::op_and()
 		case 0xe6:				 /* ANI data */
 			CY = 0;
 			AC = 0;
-			a = a & mem->get(++pc);
+			a = a & mem()->get(++pc);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1206,10 +1206,10 @@ void sim80vm_i8080::op_dcr()
 
 		case 0x35:				 /* DCR (HL) */
 			memory = getIndex();
-			carry(mem->put(memory,mem->get(memory)-1));
-			zero(mem->get(memory));
-			sign(mem->get(memory));
-			auxcarry(mem->get(memory));
+			carry(mem()->put(memory,mem()->get(memory)-1));
+			zero(mem()->get(memory));
+			sign(mem()->get(memory));
+			auxcarry(mem()->get(memory));
 								 /* other flags */
 			break;
 
@@ -1282,10 +1282,10 @@ void sim80vm_i8080::op_inr()
 
 		case 0x34:				 /* INR (HL) */
 			memory = getIndex();
-			carry(mem->put( memory, mem->get(memory)+1 ));
-			zero(mem->get(memory));
-			sign(mem->get(memory));
-			auxcarry(mem->get(memory));
+			carry(mem()->put( memory, mem()->get(memory)+1 ));
+			zero(mem()->get(memory));
+			sign(mem()->get(memory));
+			auxcarry(mem()->get(memory));
 								 /* other flags */
 			break;
 
@@ -1372,8 +1372,8 @@ void sim80vm_i8080::op_sub()
 		case 0x96:				 /* SUB (HL) */
 			memory = getIndex();
 			temp=a;
-			carry(temp - mem->get(memory));
-			a = a - mem->get(memory);
+			carry(temp - mem()->get(memory));
+			a = a - mem()->get(memory);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1392,8 +1392,8 @@ void sim80vm_i8080::op_sub()
 
 		case 0xd6:				 /* SUI data */
 			temp=a;
-			a = a - mem->get(++pc);
-			carry(temp-mem->get(pc+1));
+			a = a - mem()->get(++pc);
+			carry(temp-mem()->get(pc+1));
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1463,8 +1463,8 @@ void sim80vm_i8080::op_sub()
 		case 0x9e:				 /* SBB (HL) */
 			memory = getIndex();
 			temp=a;
-			a = a - mem->get(memory) - CY;
-			carry(temp-mem->get(memory)-CY);
+			a = a - mem()->get(memory) - CY;
+			carry(temp-mem()->get(memory)-CY);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1483,8 +1483,8 @@ void sim80vm_i8080::op_sub()
 
 		case 0xde:				 /* SBI data */
 			temp=a;
-			a = a - mem->get(++pc) - CY;
-			carry(temp-mem->get(pc+1)-CY);
+			a = a - mem()->get(++pc) - CY;
+			carry(temp-mem()->get(pc+1)-CY);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1506,8 +1506,8 @@ void sim80vm_i8080::op_add()
 	{
 		case 0xc6:				 /* ADI data */
 			temp=a;
-			carry(temp+mem->get(pc+1));
-			a += mem->get(++pc);
+			carry(temp+mem()->get(pc+1));
+			a += mem()->get(++pc);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1577,8 +1577,8 @@ void sim80vm_i8080::op_add()
 		case 0x8e:				 /* ADC (HL) */
 			memory = getIndex();
 			temp=a;
-			a = a + mem->get(memory) + CY;
-			carry(temp+a+mem->get(memory)+CY);
+			a = a + mem()->get(memory) + CY;
+			carry(temp+a+mem()->get(memory)+CY);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1597,8 +1597,8 @@ void sim80vm_i8080::op_add()
 
 		case 0xce:				 /* ACI data */
 			temp=a;
-			a = a + mem->get(++pc) + CY;
-			carry(temp+mem->get(pc+1) + CY);
+			a = a + mem()->get(++pc) + CY;
+			carry(temp+mem()->get(pc+1) + CY);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1677,9 +1677,9 @@ void sim80vm_i8080::op_add()
 		case 0x86:				 /* ADD (HL) */
 			memory = getIndex();
 			temp=a;
-			temp+=mem->get(memory);
+			temp+=mem()->get(memory);
 			carry(temp);
-			a += mem->get(memory);
+			a += mem()->get(memory);
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1725,7 +1725,7 @@ void sim80vm_i8080::op_mov()
 
 		case 0x46:				 /* MOV B,(HL) (memory) */
 			memory = getIndex(); /* set pointer from HL */
-			b = mem->get(memory);
+			b = mem()->get(memory);
 			break;
 
 		case 0x47:				 /* MOV B,A */
@@ -1760,7 +1760,7 @@ void sim80vm_i8080::op_mov()
 
 		case 0x4e:				 /* MOV C,(HL) */
 			memory = getIndex();
-			c = mem->get(memory);
+			c = mem()->get(memory);
 			break;
 
 		case 0x4f:				 /* MOV C,A */
@@ -1794,7 +1794,7 @@ void sim80vm_i8080::op_mov()
 
 		case 0x56:				 /* MOV D,(HL) */
 			memory = getIndex();
-			d = mem->get(memory);
+			d = mem()->get(memory);
 			break;
 
 		case 0x57:				 /* MOV D,A */
@@ -1829,7 +1829,7 @@ void sim80vm_i8080::op_mov()
 
 		case 0x5e:				 /* MOV E,(HL) */
 			memory = getIndex();
-			e = mem->get(memory);
+			e = mem()->get(memory);
 			break;
 
 		case 0x5f:				 /* MOV E,A */
@@ -1864,7 +1864,7 @@ void sim80vm_i8080::op_mov()
 
 		case 0x66:				 /* MOV H,(HL) */
 			memory = getIndex();
-			h = mem->get(memory);
+			h = mem()->get(memory);
 			break;
 
 		case 0x67:				 /* MOV H,A */
@@ -1898,7 +1898,7 @@ void sim80vm_i8080::op_mov()
 
 		case 0x6e:				 /* MOV L,(HL) */
 			memory = getIndex();
-			l = mem->get(memory);
+			l = mem()->get(memory);
 			break;
 
 		case 0x6f:				 /* MOV L,A */
@@ -1932,7 +1932,7 @@ void sim80vm_i8080::op_mov()
 
 		case 0x7e:				 /* MOV A,(HL) */
 			memory = getIndex();
-			a = mem->get(memory);
+			a = mem()->get(memory);
 			break;
 
 		case 0x7f:				 /* MOV A,A */
@@ -1942,37 +1942,37 @@ void sim80vm_i8080::op_mov()
 
 		case 0x70:				 /* MOV (HL),B */
 			memory = getIndex();
-			mem->put(memory,b);
+			mem()->put(memory,b);
 			break;
 
 		case 0x71:				 /* MOV (HL),C */
 			memory = getIndex();
-			mem->put(memory,c);
+			mem()->put(memory,c);
 			break;
 
 		case 0x72:				 /* MOV (HL),D */
 			memory = getIndex();
-			mem->put(memory,d);
+			mem()->put(memory,d);
 			break;
 
 		case 0x73:				 /* MOV (HL),E */
 			memory = getIndex();
-			mem->put(memory,e);
+			mem()->put(memory,e);
 			break;
 
 		case 0x74:				 /* MOV (HL),H */
 			memory = getIndex();
-			mem->put(memory,h);
+			mem()->put(memory,h);
 			break;
 
 		case 0x75:				 /* MOV (HL),L */
 			memory = getIndex();
-			mem->put(memory,l);
+			mem()->put(memory,l);
 			break;
 
 		case 0x77:				 /* MOV (HL),A */
 			memory = getIndex();
-			mem->put(memory,a);
+			mem()->put(memory,a);
 			break;
 
 		default:
@@ -1987,110 +1987,110 @@ void sim80vm_i8080::op_lxi()
 	switch(opcode)
 	{
 		case 0x06:				 /* MVI B */
-			b = mem->get(++pc);
+			b = mem()->get(++pc);
 			break;
 
 		case 0x0e:				 /* MVI C */
-			c = mem->get(++pc);
+			c = mem()->get(++pc);
 			break;
 
 		case 0x16:				 /* MVI D */
-			d = mem->get(++pc);
+			d = mem()->get(++pc);
 			break;
 
 		case 0x1e:				 /* MVI E */
-			e = mem->get(++pc);
+			e = mem()->get(++pc);
 			break;
 
 		case 0x26:				 /* MVI H */
-			h = mem->get(++pc);
+			h = mem()->get(++pc);
 			break;
 
 		case 0x2e:				 /* MVI L */
-			l = mem->get(++pc);
+			l = mem()->get(++pc);
 			break;
 
 		case 0x36:				 /* MVI (HL) - load data to memory */
 			memory = getIndex();
-			mem->put( memory, mem->get(++pc) );
+			mem()->put( memory, mem()->get(++pc) );
 			break;
 
 		case 0x3e:				 /* MVI A */
-			a = mem->get(++pc);
+			a = mem()->get(++pc);
 			break;
 
 								 /*----------------------------*/
 
 		case 0x01:				 /* LXI BC,data-l,data-h */
-			c = mem->get(++pc);
-			b = mem->get(++pc);
+			c = mem()->get(++pc);
+			b = mem()->get(++pc);
 			break;
 
 		case 0x11:				 /* LXI DE,data-l,data-h */
-			e = mem->get(++pc);
-			d = mem->get(++pc);
+			e = mem()->get(++pc);
+			d = mem()->get(++pc);
 			break;
 
 		case 0x21:				 /* LXI HL,data-l,data-h */
-			l = mem->get(++pc);
-			h = mem->get(++pc);
+			l = mem()->get(++pc);
+			h = mem()->get(++pc);
 			break;
 
 		case 0x31:				 /* LXI SP,data-l,data-h */
-			sp = mem->get(pc+1) | (mem->get(pc+2)<<8);
+			sp = mem()->get(pc+1) | (mem()->get(pc+2)<<8);
 			pc+=2;
 			break;
 								 /*----------------------------*/
 
 		case 0x3a:				 /* LDA addr */
-			memory = mem->get(pc+1) | (mem->get(pc+2)<<8);
+			memory = mem()->get(pc+1) | (mem()->get(pc+2)<<8);
 			pc+=2;
-			a = mem->get(memory);
+			a = mem()->get(memory);
 			break;
 								 /*-----------------------------*/
 
 		case 0x32:				 /* STA addr */
-			memory = mem->get(pc+1) | (mem->get(pc+2)<<8);
+			memory = mem()->get(pc+1) | (mem()->get(pc+2)<<8);
 			pc+=2;
-			mem->put(memory,a);
+			mem()->put(memory,a);
 			break;
 								 /*------------------------------*/
 
 		case 0x2a:				 /* LHLD addr */
-			memory = mem->get(pc+1) | (mem->get(pc+2)<<8);
+			memory = mem()->get(pc+1) | (mem()->get(pc+2)<<8);
 			pc+=2;
-			l = mem->get(memory);
-			h = mem->get(memory+1);
+			l = mem()->get(memory);
+			h = mem()->get(memory+1);
 			break;
 								 /*------------------------------*/
 
 		case 0x22:				 /* SHLD addr */
-			memory = mem->get(pc+1) | (mem->get(pc+2)<<8);
+			memory = mem()->get(pc+1) | (mem()->get(pc+2)<<8);
 			pc+=2;
-			mem->put(memory,l);
-			mem->put(memory+1,h);
+			mem()->put(memory,l);
+			mem()->put(memory+1,h);
 			break;
 								 /*-----------------------------*/
 
 		case 0x0a:				 /* LDAX BC */
 			memory = (b<<8) | c;
-			a = mem->get(memory);
+			a = mem()->get(memory);
 			break;
 
 		case 0x1a:				 /* LDAX DE */
 			memory = (d<<8) | e;
-			a = mem->get(memory);
+			a = mem()->get(memory);
 			break;
 								 /*-----------------------------*/
 
 		case 0x02:				 /* STAX BC */
 			memory = (b<<8) | c;
-			mem->put(memory,a);
+			mem()->put(memory,a);
 			break;
 
 		case 0x12:				 /* STAX DE */
 			memory = (d<<8) | e;
-			mem->put(memory,a);
+			mem()->put(memory,a);
 			break;
 								 /*---------------------------*/
 
