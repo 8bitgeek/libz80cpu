@@ -32,8 +32,8 @@ SOFTWARE.
 #include "sim80vm.h"
 
 sim80vm::sim80vm(sim80mem* m,sim80io* io)
- : rst_vector(0)
- , opcode(0)
+ : m_rst_vector(0)
+ , m_opcode(0)
  , m_mem(m)
  , m_io(io)
 {
@@ -48,15 +48,15 @@ sim80vm::~sim80vm()
 void sim80vm::run1(void)
 {
 
-	if ( rst_vector > 0 )
+	if ( rst_vector() > 0 )
 	{
 		setFlagI(0);
-		opcode = rst_vector;
-		rst_vector = (-1);
+		opcode_set(rst_vector());
+		rst_vector_set(-1);
 	}
 	else
 	{
-		opcode = mem()->get(getRegPC());
+		opcode_set(mem()->get(getRegPC()));
 	}
 	run2();
 	setRegPC( getRegPC()+1 );	 /** increment the PC */

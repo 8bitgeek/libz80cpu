@@ -48,7 +48,7 @@ sim80vm_i8080::~sim80vm_i8080()
 
 void sim80vm_i8080::run2(void)
 {
-	if ( opcode != 0x00 )		 /* Handle NOP case */
+	if ( opcode() != 0x00 )		 /* Handle NOP case */
 	{
 		exec_opcode();
 		f = (S<<5 | Z<<4 | AC<<3 | P<<2 | CY | 0x02);
@@ -110,7 +110,7 @@ void sim80vm_i8080::rst0()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xc7;		 /* RST 0 */
+		rst_vector_set(0xc7);		 /* RST 0 */
 	}
 }
 
@@ -119,7 +119,7 @@ void sim80vm_i8080::rst1()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xcf;		 /* RST 1 */
+		rst_vector_set(0xcf);		 /* RST 1 */
 	}
 }
 
@@ -128,7 +128,7 @@ void sim80vm_i8080::rst2()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xd7;		 /* RST 2 */
+		rst_vector_set(0xd7);		 /* RST 2 */
 	}
 }
 
@@ -137,7 +137,7 @@ void sim80vm_i8080::rst3()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xdf;		 /* RST 3 */
+		rst_vector_set(0xdf);		 /* RST 3 */
 	}
 }
 
@@ -146,7 +146,7 @@ void sim80vm_i8080::rst4()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xe7;		 /* RST 4 */
+		rst_vector_set(0xe7);		 /* RST 4 */
 	}
 }
 
@@ -155,7 +155,7 @@ void sim80vm_i8080::rst5()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xef;		 /* RST 5 */
+		rst_vector_set(0xef);		 /* RST 5 */
 	}
 }
 
@@ -164,7 +164,7 @@ void sim80vm_i8080::rst6()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xf7;		 /* RST 6 */
+		rst_vector_set(0xf7);		 /* RST 6 */
 	}
 }
 
@@ -173,15 +173,15 @@ void sim80vm_i8080::rst7()
 {
 	if ( I == 1 )
 	{
-		rst_vector = 0xff;		 /* RST 7 */
+		rst_vector_set(0xff);		 /* RST 7 */
 	}
 }
 
 
 void sim80vm_i8080::op_stack()
 {
-	/* handle stack opcodes */
-	switch (opcode)
+	/* handle stack opcode()s */
+	switch (opcode())
 	{
 		case 0xc5:				 /* PUSH BC */
 			mem()->put(--sp,b);
@@ -244,7 +244,7 @@ void sim80vm_i8080::op_stack()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -260,7 +260,7 @@ void sim80vm_i8080::op_io()
 	port 1 will display all ascii characters.
 	*/
 
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0xd3:				 /* OUT port */
 			/* get port */
@@ -273,7 +273,7 @@ void sim80vm_i8080::op_io()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -283,7 +283,7 @@ void sim80vm_i8080::op_flow()
 {
 	/* call instructions */
 
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0xcd:				 /* CALL addr */
 
@@ -625,7 +625,7 @@ void sim80vm_i8080::op_flow()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -633,7 +633,7 @@ void sim80vm_i8080::op_flow()
 
 void sim80vm_i8080::op_rotate()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x07:				 /* RLC (rotate left) */
 			temp = a;
@@ -666,7 +666,7 @@ void sim80vm_i8080::op_rotate()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -675,7 +675,7 @@ void sim80vm_i8080::op_rotate()
 void sim80vm_i8080::op_compare()
 {
 	/* Compare operations */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0xb8:				 /* CMP B */
 			Z = 0;
@@ -771,7 +771,7 @@ void sim80vm_i8080::op_compare()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -780,7 +780,7 @@ void sim80vm_i8080::op_compare()
 void sim80vm_i8080::op_or()
 {
 	/* OR operations */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0xb0:				 /* ORA B */
 			CY = 0;
@@ -864,7 +864,7 @@ void sim80vm_i8080::op_or()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -873,7 +873,7 @@ void sim80vm_i8080::op_or()
 void sim80vm_i8080::op_xor()
 {
 	/* XOR operations */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0xa8:				 /* XRA B */
 			CY = 0;
@@ -957,7 +957,7 @@ void sim80vm_i8080::op_xor()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -966,7 +966,7 @@ void sim80vm_i8080::op_xor()
 void sim80vm_i8080::op_and()
 {
 	/* AND operations */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0xa0:				 /* ANA B */
 			CY = 0;				 /* always */
@@ -1042,7 +1042,7 @@ void sim80vm_i8080::op_and()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -1051,7 +1051,7 @@ void sim80vm_i8080::op_and()
 void sim80vm_i8080::op_control()
 {
 	/* control operations */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x00:				 /* NOP - no operation */
 			break;
@@ -1069,7 +1069,7 @@ void sim80vm_i8080::op_control()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -1078,7 +1078,7 @@ void sim80vm_i8080::op_control()
 void sim80vm_i8080::op_dad()
 {
 	/* 16 bit add */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x09:				 /* DAD BC */
 			temp=((h<<8)| l)+((b<<8)| c);
@@ -1109,7 +1109,7 @@ void sim80vm_i8080::op_dad()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -1117,7 +1117,7 @@ void sim80vm_i8080::op_dad()
 
 void sim80vm_i8080::op_dcx()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x0b:				 /* DCX BC */
 			c = c - 1;
@@ -1142,7 +1142,7 @@ void sim80vm_i8080::op_dcx()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -1150,7 +1150,7 @@ void sim80vm_i8080::op_dcx()
 
 void sim80vm_i8080::op_inx()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x03:				 /* INX BC */
 			c = c + 1;
@@ -1181,7 +1181,7 @@ void sim80vm_i8080::op_inx()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -1189,7 +1189,7 @@ void sim80vm_i8080::op_inx()
 
 void sim80vm_i8080::op_dcr()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x05:				 /* DCR B */
 			carry(--b);
@@ -1257,7 +1257,7 @@ void sim80vm_i8080::op_dcr()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -1265,7 +1265,7 @@ void sim80vm_i8080::op_dcr()
 
 void sim80vm_i8080::op_inr()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x04:				 /* INR B */
 			carry(++b);
@@ -1333,7 +1333,7 @@ void sim80vm_i8080::op_inr()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -1342,7 +1342,7 @@ void sim80vm_i8080::op_inr()
 void sim80vm_i8080::op_sub()
 {
 	/* 8 bit subtraction */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x90:				 /* SUB B */
 			temp=a;
@@ -1527,7 +1527,7 @@ void sim80vm_i8080::op_sub()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 
@@ -1537,7 +1537,7 @@ void sim80vm_i8080::op_sub()
 void sim80vm_i8080::op_add()
 {
 	/* 8 bit addition */
-	switch (opcode)
+	switch (opcode())
 	{
 		case 0xc6:				 /* ADI data */
 			temp=a;
@@ -1722,7 +1722,7 @@ void sim80vm_i8080::op_add()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 
 	}
@@ -1732,7 +1732,7 @@ void sim80vm_i8080::op_add()
 void sim80vm_i8080::op_mov()
 {
 	/* 8 bit move */
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x40:				 /* MOV B,B */
 			b = b;
@@ -2011,7 +2011,7 @@ void sim80vm_i8080::op_mov()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -2019,7 +2019,7 @@ void sim80vm_i8080::op_mov()
 
 void sim80vm_i8080::op_lxi()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x06:				 /* MVI B */
 			b = mem()->get(++pc);
@@ -2140,7 +2140,7 @@ void sim80vm_i8080::op_lxi()
 								 /*----------------------------*/
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
@@ -2148,7 +2148,7 @@ void sim80vm_i8080::op_lxi()
 
 void sim80vm_i8080::op_special()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		/* special commands */
 		case 0x2f:				 /* CMA - compliment Acc */
@@ -2188,14 +2188,14 @@ void sim80vm_i8080::op_special()
 			break;
 
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 }
 
 void sim80vm_i8080::exec_opcode()
 {
-	switch ( opcode ) {
+	switch ( opcode() ) {
 		
 		/** stack operations */
 		
@@ -2260,7 +2260,7 @@ void sim80vm_i8080::exec_opcode()
 			op_flow();
 			break;
 			
-		/** compare opcodes */
+		/** compare opcode()s */
 		
 		case 0xb8:  /** CMP B */
 		case 0xb9:  /** CMP C */
@@ -2274,7 +2274,7 @@ void sim80vm_i8080::exec_opcode()
 			op_compare();
 			break;
 			
-		/** rotate opcodes */
+		/** rotate opcode()s */
 			
 		case 0x07:  /** RLC (rotate left) */
 		case 0x0f:  /** RRC (rotate right) */
@@ -2677,7 +2677,7 @@ void sim80vm_i8080::exec_opcode()
 			op_lxi();
 			break;
 			
-		/** special opcodes */
+		/** special opcode()s */
 	
 		/** CMA - compliment Acc */
 		case 0x2f:  
@@ -2690,7 +2690,7 @@ void sim80vm_i8080::exec_opcode()
 			op_special();
 			break;
 		default:
-			bad_opcode(getRegPC(),opcode);
+			bad_opcode(getRegPC(),opcode());
 			break;
 	}
 

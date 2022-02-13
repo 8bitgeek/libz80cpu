@@ -137,9 +137,9 @@ uint8_t sim80vm_z80a::reg8put(uint8_t i,uint8_t v,uint8_t disp)
 
 void sim80vm_z80a::op_flow()
 {
-	switch(opcode)
+	switch(opcode())
 	{
-		/** special opcodes */
+		/** special opcode()s */
 		
 		case 0x10:					/** djnz #disp */
 			if (--b) pc += (int8_t)(mem()->get(++pc));
@@ -179,14 +179,14 @@ void sim80vm_z80a::op_flow()
 
 void sim80vm_z80a::op_bits()
 {
-	opcode = mem()->get(++pc); 								/** skip lead-in (0xCB) part of opcode and get the Z/80 opcode */
+	opcode_set(mem()->get(++pc)); 			/** skip lead-in (0xCB) part of opcode() and get the Z/80 opcode() */
 	uint8_t disp=(index==reg_HL?0:mem()->get(++pc)); 	/** displacement added to index IX,IY registers */
-	switch(opcode>>6) {
+	switch(opcode()>>6) {
 		case 0x00:							/** rotate... */
-			switch(opcode>>3) {
+			switch(opcode()>>3) {
 				case 0x00:					/** rlc reg8 */
 				{
-					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t reg = reg8get(opcode()&0x7,disp);
 					CY = ((reg)&0x80)>>7;	/** carry = msb */
 					reg = reg << 1;			/** shift left one bit position */
 					reg |= CY&1;			/** rotate msb to lsb position */
@@ -194,13 +194,13 @@ void sim80vm_z80a::op_bits()
 					zero(reg);
 					sign(reg);
 					parity(reg);
-					reg8put(opcode&0x7,reg,disp);
+					reg8put(opcode()&0x7,reg,disp);
 				}
 				break;
 				
 				case 0x01:					/** rrc reg8 */
 				{
-					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t reg = reg8get(opcode()&0x7,disp);
 					CY = (reg)&1;			/** carry = lsb */
 					reg = reg >> 1;			/** shift right one bit position */
 					reg |= CY&1;			/** rotate lsb to msb position */
@@ -208,13 +208,13 @@ void sim80vm_z80a::op_bits()
 					zero(reg);
 					sign(reg);
 					parity(reg);
-					reg8put(opcode&0x7,reg,disp);
+					reg8put(opcode()&0x7,reg,disp);
 				}
 				break;
 				
 				case 0x02:					/** rl reg8 */
 				{
-					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t reg = reg8get(opcode()&0x7,disp);
 					uint8_t t=CY;			/** save current carry flag */
 					CY = ((reg)&0x80)>>7;	/** carry = msb */
 					reg = reg << 1;			/** shift left one bit position */
@@ -223,13 +223,13 @@ void sim80vm_z80a::op_bits()
 					zero(reg);
 					sign(reg);
 					parity(reg);
-					reg8put(opcode&0x7,reg,disp);
+					reg8put(opcode()&0x7,reg,disp);
 				}
 				break;
 				
 				case 0x03:					/** rr reg8 */
 				{
-					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t reg = reg8get(opcode()&0x7,disp);
 					uint8_t t=CY;			/** save current carry flag */
 					CY = (reg)&1;			/** carry = lsb */
 					reg = reg >> 1;			/** shift right one bit position */
@@ -238,13 +238,13 @@ void sim80vm_z80a::op_bits()
 					zero(reg);
 					sign(reg);
 					parity(reg);
-					reg8put(opcode&0x7,reg,disp);
+					reg8put(opcode()&0x7,reg,disp);
 				}
 				break;
 				
 				case 0x04:					/** sla reg8 */
 				{
-					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t reg = reg8get(opcode()&0x7,disp);
 					CY = ((reg)>>7)&1;		/** carry = msb */
 					reg = reg << 1;			/** shift left one bit position */
 					AC=0;					/** set program status flags... */
@@ -252,13 +252,13 @@ void sim80vm_z80a::op_bits()
 					zero(reg);
 					sign(reg);
 					parity(reg);
-					reg8put(opcode&0x7,reg,disp);
+					reg8put(opcode()&0x7,reg,disp);
 				}
 				break;
 				
 				case 0x05:					/** sra reg8 */
 				{
-					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t reg = reg8get(opcode()&0x7,disp);
 					uint8_t t = (reg)&0x80;
 					CY = (reg)&1;			/** carry = lsb */
 					reg = reg >> 1;			/** shift left one bit position */
@@ -268,20 +268,20 @@ void sim80vm_z80a::op_bits()
 					zero(reg);
 					sign(reg);
 					parity(reg);
-					reg8put(opcode&0x7,reg,disp);
+					reg8put(opcode()&0x7,reg,disp);
 				}
 				break;
 				
 				default:
-					bad_opcode(pc,opcode);
+					bad_opcode(pc,opcode());
 				break;
 			}
 			break;
 		
 		case 0x01:						/** bit b,reg */
 		{
-			uint8_t reg = reg8get(opcode&0x7,disp);
-			Z = (~((reg) >> ((opcode>>3)&0x07))) & 0x01;
+			uint8_t reg = reg8get(opcode()&0x7,disp);
+			Z = (~((reg) >> ((opcode()>>3)&0x07))) & 0x01;
 			AC=1;
 			N=0;
 		}
@@ -289,21 +289,21 @@ void sim80vm_z80a::op_bits()
 		
 		case 0x02:						/** res b,reg */
 		{
-			uint8_t reg = reg8get(opcode&0x7,disp);
-			reg &= ~(0x01 << ((opcode>>3)&0x07));
-			reg8put(opcode&0x7,reg,disp);
+			uint8_t reg = reg8get(opcode()&0x7,disp);
+			reg &= ~(0x01 << ((opcode()>>3)&0x07));
+			reg8put(opcode()&0x7,reg,disp);
 		}
 		break;
 		
 		case 0x03:						/** set b,reg */
 		{
-			uint8_t reg = reg8get(opcode&0x7,disp);
-			reg |= (0x01 << ((opcode>>3)&0x07));
-			reg8put(opcode&0x7,reg,disp);
+			uint8_t reg = reg8get(opcode()&0x7,disp);
+			reg |= (0x01 << ((opcode()>>3)&0x07));
+			reg8put(opcode()&0x7,reg,disp);
 		}
 		break;
 		default:
-			bad_opcode(pc,opcode);
+			bad_opcode(pc,opcode());
 		break;
 	}
 }
@@ -312,19 +312,19 @@ void sim80vm_z80a::op_ix()
 {
 	/** switch to IX addressing mode.. */
 	index = reg_IX;
-	opcode = mem()->get(++pc);
+	opcode_set(mem()->get(++pc));
 }
 
 void sim80vm_z80a::op_iy()
 {
 	/** switch to IY addressing mode.. */
 	index = reg_IY;
-	opcode = mem()->get(++pc);
+	opcode_set(mem()->get(++pc));
 }
 
 void sim80vm_z80a::op_special()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x08:					/** EX af,af' - exchange af with af' */
 			{
@@ -353,8 +353,8 @@ void sim80vm_z80a::op_special()
 
 void sim80vm_z80a::op_interrupts()
 {
-	opcode = mem()->get(++pc);
-	switch(opcode)
+	opcode_set(mem()->get(++pc));
+	switch(opcode())
 	{
 		case 0x44:					/** NEG - Two's complement accumulator */
 		{
@@ -579,8 +579,8 @@ void sim80vm_z80a::op_interrupts()
 		break;
 		default:
 		{
-			/** bad opcode */
-			opcode = mem()->get(--pc);
+			/** bad opcode() */
+			opcode_set(mem()->get(--pc));
 			inherited::exec_opcode();
 		}
 		break;
@@ -589,10 +589,10 @@ void sim80vm_z80a::op_interrupts()
 
 void sim80vm_z80a::op_stack()
 {
-	/* handle stack opcodes */
+	/* handle stack opcode()s */
 	if ( index != reg_HL )
 	{
-		switch (opcode)
+		switch (opcode())
 		{
 			case 0xe5:				 /* PUSH index */
 				mem()->put(--sp,getIndex()>>8);
@@ -615,7 +615,7 @@ void sim80vm_z80a::op_stack()
 				}
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -630,7 +630,7 @@ void sim80vm_z80a::op_compare()
 	/* Compare operations */
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0xbe:				 /* CMP (HL) */
 				Z = 0;
@@ -643,7 +643,7 @@ void sim80vm_z80a::op_compare()
 				auxcarry(a);
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -659,7 +659,7 @@ void sim80vm_z80a::op_or()
 	/* OR operations */
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0xb6:				 /* ORA (HL) */
 				CY = 0;
@@ -670,7 +670,7 @@ void sim80vm_z80a::op_or()
 				auxcarry(a);
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -686,7 +686,7 @@ void sim80vm_z80a::op_xor()
 	/* XOR operations */
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0xae:				 /* XRA (HL) */
 				CY = 0;
@@ -697,7 +697,7 @@ void sim80vm_z80a::op_xor()
 				auxcarry(a);
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -713,7 +713,7 @@ void sim80vm_z80a::op_and()
 	/* AND operations */
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0xa6:				 /* ANA (HL) */
 				CY = 0;
@@ -723,7 +723,7 @@ void sim80vm_z80a::op_and()
 				auxcarry(a);
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -740,7 +740,7 @@ void sim80vm_z80a::op_dad()
 	/* 16 bit add */
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0x09:				 /* DAD BC */
 				temp=getIndex()+((b<<8)| c);
@@ -767,7 +767,7 @@ void sim80vm_z80a::op_dad()
 				break;
 	
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -782,13 +782,13 @@ void sim80vm_z80a::op_dcx()
 {
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0x2b:				 /* DCX HL */
 				putIndex(getIndex()-1);
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -803,13 +803,13 @@ void sim80vm_z80a::op_inx()
 {
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0x23:				 /* INX HL */
 				putIndex(getIndex()+1);
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -824,7 +824,7 @@ void sim80vm_z80a::op_dcr()
 {
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0x35:				 /* DCR (HL) */
 			{
@@ -837,7 +837,7 @@ void sim80vm_z80a::op_dcr()
 			}
 			break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -852,7 +852,7 @@ void sim80vm_z80a::op_inr()
 {
 	if ( index != reg_HL )
 	{
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0x34:				 /* INR (HL) */
 			{
@@ -865,7 +865,7 @@ void sim80vm_z80a::op_inr()
 			}
 			break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -882,7 +882,7 @@ void sim80vm_z80a::op_sub()
 	if ( index != reg_HL )
 	{
 		uint16_t memory;
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0x96:				 /* SUB (HL) */
 				memory = getIndex(mem()->get(++pc));
@@ -905,7 +905,7 @@ void sim80vm_z80a::op_sub()
 									/* other flags */
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -922,7 +922,7 @@ void sim80vm_z80a::op_add()
 	/* 8 bit addition */
 	if ( index != reg_HL )
 	{
-		switch (opcode)
+		switch (opcode())
 		{
 			case 0x8e:				 /* ADC (HL) */
 				memory = getIndex(mem()->get(++pc));
@@ -946,7 +946,7 @@ void sim80vm_z80a::op_add()
 									/* do CY etc flags */
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -963,7 +963,7 @@ void sim80vm_z80a::op_mov()
 	if ( index != reg_HL )
 	{
 		uint16_t memory;
-		switch(opcode)
+		switch(opcode())
 		{
 			case 0x46:				 /* MOV B,(HL) */
 				memory = getIndex(mem()->get(++pc));
@@ -1022,7 +1022,7 @@ void sim80vm_z80a::op_mov()
 				mem()->put(memory,a);
 				break;
 			default:
-				bad_opcode(getRegPC(),opcode);
+				bad_opcode(getRegPC(),opcode());
 				break;
 		}
 	}
@@ -1035,7 +1035,7 @@ void sim80vm_z80a::op_mov()
 
 void sim80vm_z80a::op_lxi()
 {
-	switch(opcode)
+	switch(opcode())
 	{
 		case 0x36:				 /* ld (i?),dddd */
 			mem()->put( getIndex(), mem()->get(++pc) );
@@ -1069,7 +1069,7 @@ void sim80vm_z80a::op_lxi()
 void sim80vm_z80a::exec_opcode()
 {
 	index = reg_HL;
-	switch ( opcode ) {
+	switch ( opcode() ) {
 		case  0x08:		/** EX af,af' */
 		case  0xd9: 	/** EXX */
 			op_special();

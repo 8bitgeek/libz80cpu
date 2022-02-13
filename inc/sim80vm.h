@@ -138,13 +138,25 @@ class sim80vm
 		virtual uint8_t reg8get(uint8_t i,uint8_t disp=0)=0;
 		virtual uint8_t reg8put(uint8_t i,uint8_t v,uint8_t disp=0)=0;
 
-		int 		rst_vector;					/** reset (interrupt) vector */
-		uint8_t 	opcode;						/** opcode read from program memory */
+		/** memory class */
+		sim80mem*	mem()	{return m_mem;}
 
-		sim80mem*	mem()	{return m_mem;}		/** memory class */
-		sim80io*	io()	{return m_io;}		/** I/O class */
+		/** I/O class */
+		sim80io*	io()	{return m_io;}		
+		
+		/** reset (interrupt) vector */
+		void 		rst_vector_set(int vector) {m_rst_vector=vector;}
+		int 		rst_vector() {return m_rst_vector;}
+
+		/** opcode read from program memory */
+		void 		opcode_set(uint8_t opcode) {m_opcode=opcode;}					
+		uint8_t 	opcode() {return m_opcode;}					
+
 
 	private:
+
+		int 		m_rst_vector;				/** reset (interrupt) vector */
+		uint8_t 	m_opcode;					/** opcode read from program memory */
 
 		sim80mem*	m_mem; 						/** memory class */
 		sim80io*	m_io; 						/** I/O class */
