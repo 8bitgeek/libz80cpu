@@ -55,20 +55,55 @@ void sim80vm_i8080::run2(void)
 	}
 }
 
-uint8_t* sim80vm_i8080::reg8ptr(uint8_t i,uint8_t disp)	
+/** 
+ * @brief Get value from an 8-bit register
+ */
+uint8_t sim80vm_i8080::reg8get(uint8_t i,uint8_t disp)
 {
-	/** get ptr to 8-bit register from opcode index.. */
+	uint8_t rc=0xFF;
 	switch(i) {
-		case 0x00: return &b; break;
-		case 0x01: return &c; break;
-		case 0x02: return &d; break;
-		case 0x03: return &e; break;
-		case 0x04: return &h; break;
-		case 0x05: return &l; break;
-		case 0x06: return mem()->ptr((uint16_t)((h<<8)|l)); break;
-		case 0x07: return &a; break;
-		default: return NULL; break;
+		case 0x00: rc=b; break;
+		case 0x01: rc=c; break;
+		case 0x02: rc=d; break;
+		case 0x03: rc=e; break;
+		case 0x04: rc=h; break;
+		case 0x05: rc=l; break;
+		case 0x06: 
+			{
+				uint16_t addr=(uint16_t)((h<<8)|l);
+				rc=mem()->get(addr); 
+			}
+		break;
+		case 0x07: rc=a; break;
+		default: 
+			rc=0xff; 
+			break;
 	}
+	return rc;
+}
+
+/** 
+ * @brief Set value to an 8-bit register
+ */
+uint8_t sim80vm_i8080::reg8put(uint8_t i,uint8_t v,uint8_t disp)
+{
+	switch(i) {
+		case 0x00: b=v; break;
+		case 0x01: c=v; break;
+		case 0x02: d=v; break;
+		case 0x03: e=v; break;
+		case 0x04: h=v; break;
+		case 0x05: l=v; break;
+		case 0x06: 
+			{
+				uint16_t addr=(uint16_t)((h<<8)|l);
+				mem()->put(addr,v); 
+			}
+		break;
+		case 0x07: a=v; break;
+		default: break;
+	}
+	return v;
 }
 
 void sim80vm_i8080::rst0()

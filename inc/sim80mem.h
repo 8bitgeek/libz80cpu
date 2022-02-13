@@ -46,10 +46,10 @@ class sim80mem
 		sim80mem() {}
 		virtual ~sim80mem();
 	
-		virtual uint8_t   	get(uint16_t addr)=0;
-		virtual uint8_t		put(uint16_t addr, uint8_t data, bool loading=false)=0;
-		virtual uint8_t*	ptr()=0;
-		virtual uint8_t*	ptr(uint16_t addr)=0;
+		virtual uint8_t		get(uint16_t addr)=0;
+		virtual uint8_t		put(uint16_t addr, uint8_t data)=0;
+		// virtual uint8_t*	ptr()=0;
+		// virtual uint8_t*	ptr(uint16_t addr)=0;
 };
 
 #endif

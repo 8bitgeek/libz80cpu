@@ -99,8 +99,10 @@ class sim80vm_z80a : public sim80vm_i8080
 		virtual void putIndex(uint16_t index);
 		
 		virtual void exec_opcode();
-		virtual uint8_t* reg8ptr(uint8_t i,uint8_t disp=0);	/** get 8-bit register from opcode register index.. */
-		
+
+		virtual uint8_t reg8get(uint8_t i,uint8_t disp=0);
+		virtual uint8_t reg8put(uint8_t i,uint8_t v,uint8_t disp=0);
+
 		typedef enum {								/** the index register involved in the current instruction */
 			reg_HL=0,
    			reg_IX,

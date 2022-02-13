@@ -46,8 +46,8 @@ class sim80io
 		sim80io() {}
 		virtual ~sim80io();
 	
-		virtual uint8_t   	get(uint8_t addr)=0;
-		virtual uint8_t		put(uint8_t addr, uint8_t data)=0;
+		virtual uint8_t	get(uint8_t addr)=0;
+		virtual uint8_t	put(uint8_t addr, uint8_t data)=0;
 };
 
 #endif

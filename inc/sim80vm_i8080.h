@@ -118,7 +118,9 @@ class sim80vm_i8080 : public sim80vm
 		virtual void putIndex(uint16_t index)	{l=(index&0xff); h=((index&0xff00)>>8);}
 		
 		virtual void exec_opcode();
-		virtual uint8_t* reg8ptr(uint8_t i,uint8_t disp=0);	/** get 8-bit register from opcode register index.. */
+
+		virtual uint8_t  reg8get(uint8_t i,uint8_t disp=0);
+		virtual uint8_t  reg8put(uint8_t i,uint8_t v,uint8_t disp=0);
 
 		inline void sign(uint8_t num) {
 			S=(num>>7);			/** transfer the sign bit */

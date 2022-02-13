@@ -135,9 +135,9 @@ class sim80vm
 		virtual void 		putIndex(uint16_t index)=0;
 		virtual void 		exec_opcode()=0;
 		
-		/** get 8-bit register from opcode register index.. */
-		virtual uint8_t* 	reg8ptr(uint8_t i,uint8_t disp=0)=0;	
-		
+		virtual uint8_t reg8get(uint8_t i,uint8_t disp=0)=0;
+		virtual uint8_t reg8put(uint8_t i,uint8_t v,uint8_t disp=0)=0;
+
 		int 		rst_vector;					/** reset (interrupt) vector */
 		uint8_t 	opcode;						/** opcode read from program memory */
 

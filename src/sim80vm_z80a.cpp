@@ -94,29 +94,45 @@ void sim80vm_z80a::putIndex(uint16_t i)
 	}
 }
 
-
-
-uint8_t* sim80vm_z80a::reg8ptr(uint8_t i,uint8_t disp)	
-{
-	/** get 8-bit register from opcode register index.. */
-	switch(i) {
-		case 0x00: return &b; break;
-		case 0x01: return &c; break;
-		case 0x02: return &d; break;
-		case 0x03: return &e; break;
-		case 0x04: return &h; break;
-		case 0x05: return &l; break;
-		case 0x06: 
-			switch ( index ) {
-				case reg_HL: return mem()->ptr((uint16_t)((h<<8)|l)); break;
-				case reg_IX: return mem()->ptr(ix+disp); break;
-				case reg_IY: return mem()->ptr(iy+disp); break;
-			}
-			break;
-		case 0x07: return &a; break;
-		default: return NULL; break;
+/** 
+ * @brief Get value from an 8-bit register
+ */
+uint8_t sim80vm_z80a::reg8get(uint8_t i,uint8_t disp)
+{ 
+	uint8_t rc=0xff;
+	if (i==0x06)
+	{
+		switch ( index ) {
+			case reg_HL: rc=mem()->get((uint16_t)((h<<8)|l)); break;
+			case reg_IX: rc=mem()->get(ix+disp); break;
+			case reg_IY: rc=mem()->get(iy+disp); break;
+		}
 	}
-	return NULL;
+	else
+	{
+		rc=inherited::reg8get(i,disp);
+	}
+	return rc;
+}
+
+/** 
+ * @brief Set value to an 8-bit register
+ */
+uint8_t sim80vm_z80a::reg8put(uint8_t i,uint8_t v,uint8_t disp)
+{
+	if (i==0x06)
+	{
+		switch ( index ) {
+			case reg_HL: mem()->put((uint16_t)((h<<8)|l),v); break;
+			case reg_IX: mem()->put(ix+disp,v); break;
+			case reg_IY: mem()->put(iy+disp,v); break;
+		}
+	}
+	else 
+	{
+		inherited::reg8put(i,v,disp);
+	}
+	return v;
 }
 
 void sim80vm_z80a::op_flow()
@@ -166,111 +182,93 @@ void sim80vm_z80a::op_bits()
 	opcode = mem()->get(++pc); 								/** skip lead-in (0xCB) part of opcode and get the Z/80 opcode */
 	uint8_t disp=(index==reg_HL?0:mem()->get(++pc)); 	/** displacement added to index IX,IY registers */
 	switch(opcode>>6) {
-		case 0x00:						/** rotate... */
+		case 0x00:							/** rotate... */
 			switch(opcode>>3) {
-				case 0x00:				/** rlc reg8 */
+				case 0x00:					/** rlc reg8 */
 				{
-					uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-					if ( reg ) {
-						CY = ((*reg)&0x80)>>7;		/** carry = msb */
-						*reg = *reg << 1;			/** shift left one bit position */
-						*reg |= CY&1;				/** rotate msb to lsb position */
-						AC=0;						/** set program status flags... */
-						zero(*reg);
-						sign(*reg);
-						parity(*reg);
-					} else {
-						bad_opcode(pc,opcode);
-					}
+					uint8_t reg = reg8get(opcode&0x7,disp);
+					CY = ((reg)&0x80)>>7;	/** carry = msb */
+					reg = reg << 1;			/** shift left one bit position */
+					reg |= CY&1;			/** rotate msb to lsb position */
+					AC=0;					/** set program status flags... */
+					zero(reg);
+					sign(reg);
+					parity(reg);
+					reg8put(opcode&0x7,reg,disp);
 				}
 				break;
 				
-				case 0x01:				/** rrc reg8 */
+				case 0x01:					/** rrc reg8 */
 				{
-					uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-					if ( reg ) {
-						CY = (*reg)&1;				/** carry = lsb */
-						*reg = *reg >> 1;			/** shift right one bit position */
-						*reg |= CY&1;				/** rotate lsb to msb position */
-						AC=0;						/** set program status flags... */
-						zero(*reg);
-						sign(*reg);
-						parity(*reg);
-					} else {
-						bad_opcode(pc,opcode);
-					}
+					uint8_t reg = reg8get(opcode&0x7,disp);
+					CY = (reg)&1;			/** carry = lsb */
+					reg = reg >> 1;			/** shift right one bit position */
+					reg |= CY&1;			/** rotate lsb to msb position */
+					AC=0;					/** set program status flags... */
+					zero(reg);
+					sign(reg);
+					parity(reg);
+					reg8put(opcode&0x7,reg,disp);
 				}
 				break;
 				
-				case 0x02:				/** rl reg8 */
+				case 0x02:					/** rl reg8 */
 				{
-					uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-					if ( reg ) {
-						uint8_t t=CY;			/** save current carry flag */
-						CY = ((*reg)&0x80)>>7;		/** carry = msb */
-						*reg = *reg << 1;			/** shift left one bit position */
-						*reg |= t&1;				/** rotate previous CY to lsb position */
-						AC=0;						/** set program status flags... */
-						zero(*reg);
-						sign(*reg);
-						parity(*reg);
-					} else {
-						bad_opcode(pc,opcode);
-					}
+					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t t=CY;			/** save current carry flag */
+					CY = ((reg)&0x80)>>7;	/** carry = msb */
+					reg = reg << 1;			/** shift left one bit position */
+					reg |= t&1;				/** rotate previous CY to lsb position */
+					AC=0;					/** set program status flags... */
+					zero(reg);
+					sign(reg);
+					parity(reg);
+					reg8put(opcode&0x7,reg,disp);
 				}
 				break;
 				
-				case 0x03:				/** rr reg8 */
+				case 0x03:					/** rr reg8 */
 				{
-					uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-					if ( reg ) {
-						uint8_t t=CY;			/** save current carry flag */
-						CY = (*reg)&1;				/** carry = lsb */
-						*reg = *reg >> 1;			/** shift right one bit position */
-						*reg |= t&1;				/** rotate previous CY to msb position */
-						AC=0;						/** set program status flags... */
-						zero(*reg);
-						sign(*reg);
-						parity(*reg);
-					} else {
-						bad_opcode(pc,opcode);
-					}
+					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t t=CY;			/** save current carry flag */
+					CY = (reg)&1;			/** carry = lsb */
+					reg = reg >> 1;			/** shift right one bit position */
+					reg |= t&1;				/** rotate previous CY to msb position */
+					AC=0;					/** set program status flags... */
+					zero(reg);
+					sign(reg);
+					parity(reg);
+					reg8put(opcode&0x7,reg,disp);
 				}
 				break;
 				
-				case 0x04:				/** sla reg8 */
+				case 0x04:					/** sla reg8 */
 				{
-					uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-					if ( reg ) {
-						CY = ((*reg)>>7)&1;			/** carry = msb */
-						*reg = *reg << 1;			/** shift left one bit position */
-						AC=0;						/** set program status flags... */
-						N=0;
-						zero(*reg);
-						sign(*reg);
-						parity(*reg);
-					} else {
-						bad_opcode(pc,opcode);
-					}
+					uint8_t reg = reg8get(opcode&0x7,disp);
+					CY = ((reg)>>7)&1;		/** carry = msb */
+					reg = reg << 1;			/** shift left one bit position */
+					AC=0;					/** set program status flags... */
+					N=0;
+					zero(reg);
+					sign(reg);
+					parity(reg);
+					reg8put(opcode&0x7,reg,disp);
 				}
 				break;
 				
-				case 0x05:				/** sra reg8 */
+				case 0x05:					/** sra reg8 */
 				{
-					uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-					if ( reg ) {
-						uint8_t t = (*reg)&0x80;
-						CY = (*reg)&1;				/** carry = lsb */
-						*reg = *reg >> 1;			/** shift left one bit position */
-						*reg |= t;					/** replace msb */
-						AC=0;						/** set program status flags... */
-						N=0;
-						zero(*reg);
-						sign(*reg);
-						parity(*reg);
-					} else {
-						bad_opcode(pc,opcode);
-					}
+					uint8_t reg = reg8get(opcode&0x7,disp);
+					uint8_t t = (reg)&0x80;
+					CY = (reg)&1;			/** carry = lsb */
+					reg = reg >> 1;			/** shift left one bit position */
+					reg |= t;				/** replace msb */
+					AC=0;					/** set program status flags... */
+					N=0;
+					zero(reg);
+					sign(reg);
+					parity(reg);
+					reg8put(opcode&0x7,reg,disp);
 				}
 				break;
 				
@@ -282,36 +280,26 @@ void sim80vm_z80a::op_bits()
 		
 		case 0x01:						/** bit b,reg */
 		{
-			uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-			if ( reg ) {
-				Z = (~((*reg) >> ((opcode>>3)&0x07))) & 0x01;
-				AC=1;
-				N=0;
-			} else {
-				bad_opcode(pc,opcode);
-			}
+			uint8_t reg = reg8get(opcode&0x7,disp);
+			Z = (~((reg) >> ((opcode>>3)&0x07))) & 0x01;
+			AC=1;
+			N=0;
 		}
 		break;
 		
 		case 0x02:						/** res b,reg */
 		{
-			uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-			if ( reg ) {
-				*reg &= ~(0x01 << ((opcode>>3)&0x07));
-			} else {
-				bad_opcode(pc,opcode);
-			}
+			uint8_t reg = reg8get(opcode&0x7,disp);
+			reg &= ~(0x01 << ((opcode>>3)&0x07));
+			reg8put(opcode&0x7,reg,disp);
 		}
 		break;
 		
 		case 0x03:						/** set b,reg */
 		{
-			uint8_t* reg = reg8ptr(  opcode&0x7, disp );
-			if ( reg ) {
-				*reg |= (0x01 << ((opcode>>3)&0x07));
-			} else {
-				bad_opcode(pc,opcode);
-			}
+			uint8_t reg = reg8get(opcode&0x7,disp);
+			reg |= (0x01 << ((opcode>>3)&0x07));
+			reg8put(opcode&0x7,reg,disp);
 		}
 		break;
 		default:
