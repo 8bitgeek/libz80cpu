@@ -265,11 +265,13 @@ void sim80vm_i8080::op_io()
 		case 0xd3:				 /* OUT port */
 			/* get port */
 			temp = mem()->get(++pc);
+			io()->put(temp,a);
 			break;
 
 		case 0xdb:				 /* IN port */
 			/* get port */
 			temp = mem()->get(++pc);
+			a=io()->get(temp);
 			break;
 
 		default:
