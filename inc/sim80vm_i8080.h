@@ -38,7 +38,7 @@ class sim80vm_i8080 : public sim80vm
 {
 	public:
 		sim80vm_i8080(sim80mem* msim80mem,sim80io* io);
-		~sim80vm_i8080();
+		virtual ~sim80vm_i8080();
 		
 		/** get registers... */
 		uint8_t getRegA()		{return a;}

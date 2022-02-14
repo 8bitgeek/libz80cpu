@@ -44,6 +44,10 @@ sim80vm::~sim80vm()
 {
 }
 
+void sim80vm::step(void)
+{
+	run1();
+}
 
 void sim80vm::run1(void)
 {

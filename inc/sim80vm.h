@@ -41,8 +41,10 @@ class sim80vm
 
 		sim80vm(sim80mem* m,sim80io* io);
 	
-		~sim80vm();
+		virtual ~sim80vm();
 	
+		virtual void step(void);
+
 		/** get registers... */
 		virtual uint8_t getRegA()=0;
 		virtual uint8_t getRegF()=0;
