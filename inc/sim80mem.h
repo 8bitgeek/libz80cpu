@@ -48,6 +48,9 @@ class sim80mem
 	
 		virtual uint8_t		get(uint16_t addr)=0;
 		virtual uint8_t		put(uint16_t addr, uint8_t data)=0;
+
+		virtual uint16_t 	get16(uint16_t addr)=0;
+		virtual uint16_t	put16(uint16_t addr, uint16_t data)=0;
 };
 
 #endif

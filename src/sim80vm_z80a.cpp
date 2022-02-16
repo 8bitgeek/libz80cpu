@@ -31,6 +31,7 @@ SOFTWARE.
 ******************************************************************************/
 
 #include <sim80vm_z80a.h>
+#include <stdio.h>
 
 #define inherited sim80vm_i8080
 
@@ -142,32 +143,32 @@ void sim80vm_z80a::op_flow()
 		/** special opcode()s */
 		
 		case 0x10:					/** djnz #disp */
-			if (--b) pc += (int8_t)(mem()->get(++pc));
+			if (--b) pc += (int8_t)(imm8get());
 			++pc;
 			break;
 			
 		case 0x18:					/** jr #disp */
-			pc += (int8_t)(mem()->get(++pc));
+			pc += (int8_t)(imm8get());
 			++pc;
 			break;
 			
 		case 0x20:					/** jr	nz,#disp */
-			if (!Z) pc += (int8_t)(mem()->get(++pc));
+			if (!Z) pc += (int8_t)(imm8get());
 			++pc;
 			break;
 			
 		case 0x28:					/** jr	z,#disp */
-			if (Z) pc += (int8_t)(mem()->get(++pc));
+			if (Z) pc += (int8_t)(imm8get());
 			++pc;
 			break;
 			
 		case 0x30:					/** jr	nc,#disp */
-			if (!CY) pc += (int8_t)(mem()->get(++pc));
+			if (!CY) pc += (int8_t)(imm8get());
 			++pc;
 			break;
 			
 		case 0x38:					/** jr	c,#disp */
-			if (CY) pc += (int8_t)(mem()->get(++pc));
+			if (CY) pc += (int8_t)(imm8get());
 			++pc;
 			break;
 
@@ -179,8 +180,8 @@ void sim80vm_z80a::op_flow()
 
 void sim80vm_z80a::op_bits()
 {
-	opcode_set(mem()->get(++pc)); 			/** skip lead-in (0xCB) part of opcode() and get the Z/80 opcode() */
-	uint8_t disp=(index==reg_HL?0:mem()->get(++pc)); 	/** displacement added to index IX,IY registers */
+	opcode_set(imm8get()); 			/** skip lead-in (0xCB) part of opcode() and get the Z/80 opcode() */
+	uint8_t disp=(index==reg_HL?0:imm8get()); 	/** displacement added to index IX,IY registers */
 	switch(opcode()>>6) {
 		case 0x00:							/** rotate... */
 			switch(opcode()>>3) {
@@ -312,14 +313,14 @@ void sim80vm_z80a::op_ix()
 {
 	/** switch to IX addressing mode.. */
 	index = reg_IX;
-	opcode_set(mem()->get(++pc));
+	opcode_set(imm8get());
 }
 
 void sim80vm_z80a::op_iy()
 {
 	/** switch to IY addressing mode.. */
 	index = reg_IY;
-	opcode_set(mem()->get(++pc));
+	opcode_set(imm8get());
 }
 
 void sim80vm_z80a::op_special()
@@ -353,7 +354,7 @@ void sim80vm_z80a::op_special()
 
 void sim80vm_z80a::op_interrupts()
 {
-	opcode_set(mem()->get(++pc));
+	opcode_set(imm8get());
 	switch(opcode())
 	{
 		case 0x44:					/** NEG - Two's complement accumulator */
@@ -579,9 +580,20 @@ void sim80vm_z80a::op_interrupts()
 		break;
 		default:
 		{
-			/** bad opcode() */
-			opcode_set(mem()->get(--pc));
-			inherited::exec_opcode();
+			++pc;
+			switch(opcode()&0xCF)
+			{
+				case 0x43:			/** LD (addr),RP */
+					mem()->put16(imm16get(),((opcode()>>4)&0x03));
+				break;
+				case 0x4B:			/** LD RP,(addr) */
+					reg16put(((opcode()>>4)&0x03),mem()->get16(imm16get()));
+				break;
+				default:
+				/** bad opcode() */
+				opcode_set(mem()->get(--pc));
+				inherited::exec_opcode();
+			}
 		}
 		break;
 	}
@@ -634,10 +646,10 @@ void sim80vm_z80a::op_compare()
 		{
 			case 0xbe:				 /* CMP (HL) */
 				Z = 0;
-				if (a == mem()->get(getIndex(mem()->get(++pc))))
+				if (a == mem()->get(getIndex(imm8get())))
 					Z = 1;
 				CY = 0;
-				if (a < mem()->get(getIndex(mem()->get(++pc))))
+				if (a < mem()->get(getIndex(imm8get())))
 					CY = 1;
 				sign(a);
 				auxcarry(a);
@@ -664,7 +676,7 @@ void sim80vm_z80a::op_or()
 			case 0xb6:				 /* ORA (HL) */
 				CY = 0;
 				AC = 0;
-				a = a | mem()->get(getIndex(mem()->get(++pc)));
+				a = a | mem()->get(getIndex(imm8get()));
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -691,7 +703,7 @@ void sim80vm_z80a::op_xor()
 			case 0xae:				 /* XRA (HL) */
 				CY = 0;
 				AC = 0;
-				a = a ^ mem()->get(getIndex(mem()->get(++pc)));
+				a = a ^ mem()->get(getIndex(imm8get()));
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -717,7 +729,7 @@ void sim80vm_z80a::op_and()
 		{
 			case 0xa6:				 /* ANA (HL) */
 				CY = 0;
-				a = a & mem()->get(getIndex(mem()->get(++pc)));
+				a = a & mem()->get(getIndex(imm8get()));
 				zero(a);
 				sign(a);
 				auxcarry(a);
@@ -828,7 +840,7 @@ void sim80vm_z80a::op_dcr()
 		{
 			case 0x35:				 /* DCR (HL) */
 			{
-				uint16_t memory = getIndex(mem()->get(++pc));
+				uint16_t memory = getIndex(imm8get());
 				carry(mem()->put(memory,mem()->get(memory)-1));
 				zero(mem()->get(memory));
 				sign(mem()->get(memory));
@@ -856,7 +868,7 @@ void sim80vm_z80a::op_inr()
 		{
 			case 0x34:				 /* INR (HL) */
 			{
-				uint16_t memory = getIndex(mem()->get(++pc));
+				uint16_t memory = getIndex(imm8get());
 				carry(mem()->put( memory, mem()->get(memory)+1));
 				zero(mem()->get(memory));
 				sign(mem()->get(memory));
@@ -885,7 +897,7 @@ void sim80vm_z80a::op_sub()
 		switch(opcode())
 		{
 			case 0x96:				 /* SUB (HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				temp=a;
 				carry(temp - mem()->get(memory));
 				a = a - mem()->get(memory);
@@ -895,7 +907,7 @@ void sim80vm_z80a::op_sub()
 									/* other flags */
 				break;
 			case 0x9e:				 /* SBB (HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				temp=a;
 				a = a - mem()->get(memory) - CY;
 				carry(temp-mem()->get(memory)-CY);
@@ -925,7 +937,7 @@ void sim80vm_z80a::op_add()
 		switch (opcode())
 		{
 			case 0x8e:				 /* ADC (HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				temp=a;
 				a = a + mem()->get(memory) + CY;
 				carry(temp+a+mem()->get(memory)+CY);
@@ -935,7 +947,7 @@ void sim80vm_z80a::op_add()
 									/* do other things */
 				break;
 			case 0x86:				 /* ADD (HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				temp=a;
 				temp+=mem()->get(memory);
 				carry(temp);
@@ -966,59 +978,59 @@ void sim80vm_z80a::op_mov()
 		switch(opcode())
 		{
 			case 0x46:				 /* MOV B,(HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				b = mem()->get(memory);
 				break;
 			case 0x4e:				 /* MOV C,(HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				c = mem()->get(memory);
 				break;
 			case 0x56:				 /* MOV D,(HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				d = mem()->get(memory);
 				break;
 			case 0x5e:				 /* MOV E,(HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				e = mem()->get(memory);
 				break;
 			case 0x66:				 /* MOV H,(HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				h = mem()->get(memory);
 				break;
 			case 0x6e:				 /* MOV L,(HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				l = mem()->get(memory);
 				break;
 			case 0x7e:				 /* MOV A,(HL) */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				a = mem()->get(memory);
 				break;
 			case 0x70:				 /* MOV (HL),B */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				mem()->put(memory,b);
 				break;
 			case 0x71:				 /* MOV (HL),C */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				mem()->put(memory,c);
 				break;
 			case 0x72:				 /* MOV (HL),D */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				mem()->put(memory,d);
 				break;
 			case 0x73:				 /* MOV (HL),E */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				mem()->put(memory,e);
 				break;
 			case 0x74:				 /* MOV (HL),H */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				mem()->put(memory,h);
 				break;
 			case 0x75:				 /* MOV (HL),L */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				mem()->put(memory,l);
 				break;
 			case 0x77:				 /* MOV (HL),A */
-				memory = getIndex(mem()->get(++pc));
+				memory = getIndex(imm8get());
 				mem()->put(memory,a);
 				break;
 			default:
@@ -1038,7 +1050,7 @@ void sim80vm_z80a::op_lxi()
 	switch(opcode())
 	{
 		case 0x36:				 /* ld (i?),dddd */
-			mem()->put( getIndex(), mem()->get(++pc) );
+			mem()->put( getIndex(), imm8get() );
 			break;
 		case 0x21:				 /* ld i?,dddd */
 			putIndex(mem()->get(pc+1) | (mem()->get(pc+2)<<8));

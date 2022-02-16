@@ -119,8 +119,13 @@ class sim80vm_i8080 : public sim80vm
 		
 		virtual void exec_opcode();
 
+		virtual uint8_t  imm8get();
 		virtual uint8_t  reg8get(uint8_t i,uint8_t disp=0);
 		virtual uint8_t  reg8put(uint8_t i,uint8_t v,uint8_t disp=0);
+
+		virtual uint16_t imm16get();
+		virtual uint16_t reg16get(uint8_t i);
+		virtual uint16_t reg16put(uint8_t i,uint16_t v);
 
 		inline void sign(uint8_t num) {
 			S=(num>>7);			/** transfer the sign bit */

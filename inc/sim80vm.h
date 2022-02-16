@@ -44,6 +44,7 @@ class sim80vm
 		virtual ~sim80vm();
 	
 		virtual void step(void);
+		virtual void step(uint16_t pc);
 
 		/** get registers... */
 		virtual uint8_t getRegA()=0;

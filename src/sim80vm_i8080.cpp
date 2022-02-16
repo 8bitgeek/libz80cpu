@@ -55,6 +55,13 @@ void sim80vm_i8080::run2(void)
 	}
 }
 
+uint8_t sim80vm_i8080::imm8get()
+{
+	uint8_t t;
+	t = mem()->get(++pc);
+	return t;	
+}
+
 /** 
  * @brief Get value from an 8-bit register
  */
@@ -104,6 +111,60 @@ uint8_t sim80vm_i8080::reg8put(uint8_t i,uint8_t v,uint8_t disp)
 		default: break;
 	}
 	return v;
+}
+
+uint16_t sim80vm_i8080::imm16get()
+{
+	uint16_t t;
+	t = imm8get();
+	t |= (imm8get()<<8);
+	return t;
+}
+
+uint16_t sim80vm_i8080::reg16get(uint8_t i)
+{
+	uint16_t rc=0xFFFF;
+	switch(i) {
+		case 0x00:
+			rc = c;
+			rc |= b<<8;
+		break;
+		case 0x01:
+			rc = e;
+			rc |= d<<8;
+		break;
+		case 0x02:
+			rc = l;
+			rc |= h<<8;
+		break;
+		case 0x03:
+			rc = sp;
+		break;
+	}
+	return rc;
+}
+
+uint16_t sim80vm_i8080::reg16put(uint8_t i,uint16_t v)
+{
+	switch(i) {
+		case 0x00:
+			c = (v&0xFF);
+			b = (v>>8)&0xFF;
+		break;
+		case 0x01:
+			e = (v&0xFF);
+			d = (v>>8)&0xFF;
+		break;
+		case 0x02:
+			l = (v&0xFF);
+			h = (v>>8)&0xFF;
+		break;
+		case 0x03:
+			sp = v;
+		break;
+	}
+	return v;
+
 }
 
 void sim80vm_i8080::rst0()
@@ -264,13 +325,13 @@ void sim80vm_i8080::op_io()
 	{
 		case 0xd3:				 /* OUT port */
 			/* get port */
-			temp = mem()->get(++pc);
+			temp = imm8get();
 			io()->put(temp,a);
 			break;
 
 		case 0xdb:				 /* IN port */
 			/* get port */
-			temp = mem()->get(++pc);
+			temp = imm8get();
 			a=io()->get(temp);
 			break;
 
@@ -762,7 +823,7 @@ void sim80vm_i8080::op_compare()
 
 		case 0xfe:				 /* CPI data */
 			Z = 0;
-			temp = mem()->get(++pc);
+			temp = imm8get();
 			if (a == temp)
 				Z = 1;
 			CY = 0;
@@ -859,7 +920,7 @@ void sim80vm_i8080::op_or()
 		case 0xf6:				 /* ORI data */
 			CY = 0;
 			AC = 0;
-			a = a | mem()->get(++pc);
+			a = a | imm8get();
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -952,7 +1013,7 @@ void sim80vm_i8080::op_xor()
 		case 0xee:				 /* XRI data */
 			CY = 0;
 			AC = 0;
-			a = a ^ mem()->get(++pc);
+			a = a ^ imm8get();
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1037,7 +1098,7 @@ void sim80vm_i8080::op_and()
 		case 0xe6:				 /* ANI data */
 			CY = 0;
 			AC = 0;
-			a = a & mem()->get(++pc);
+			a = a & imm8get();
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1429,7 +1490,7 @@ void sim80vm_i8080::op_sub()
 
 		case 0xd6:				 /* SUI data */
 			temp=a;
-			a = a - mem()->get(++pc);
+			a = a - imm8get();
 			carry(temp-mem()->get(pc+1));
 			zero(a);
 			sign(a);
@@ -1520,7 +1581,7 @@ void sim80vm_i8080::op_sub()
 
 		case 0xde:				 /* SBI data */
 			temp=a;
-			a = a - mem()->get(++pc) - CY;
+			a = a - imm8get() - CY;
 			carry(temp-mem()->get(pc+1)-CY);
 			zero(a);
 			sign(a);
@@ -1544,7 +1605,7 @@ void sim80vm_i8080::op_add()
 		case 0xc6:				 /* ADI data */
 			temp=a;
 			carry(temp+mem()->get(pc+1));
-			a += mem()->get(++pc);
+			a += imm8get();
 			zero(a);
 			sign(a);
 			auxcarry(a);
@@ -1634,7 +1695,7 @@ void sim80vm_i8080::op_add()
 
 		case 0xce:				 /* ACI data */
 			temp=a;
-			a = a + mem()->get(++pc) + CY;
+			a = a + imm8get() + CY;
 			carry(temp+mem()->get(pc+1) + CY);
 			zero(a);
 			sign(a);
@@ -2024,53 +2085,53 @@ void sim80vm_i8080::op_lxi()
 	switch(opcode())
 	{
 		case 0x06:				 /* MVI B */
-			b = mem()->get(++pc);
+			b = imm8get();
 			break;
 
 		case 0x0e:				 /* MVI C */
-			c = mem()->get(++pc);
+			c = imm8get();
 			break;
 
 		case 0x16:				 /* MVI D */
-			d = mem()->get(++pc);
+			d = imm8get();
 			break;
 
 		case 0x1e:				 /* MVI E */
-			e = mem()->get(++pc);
+			e = imm8get();
 			break;
 
 		case 0x26:				 /* MVI H */
-			h = mem()->get(++pc);
+			h = imm8get();
 			break;
 
 		case 0x2e:				 /* MVI L */
-			l = mem()->get(++pc);
+			l = imm8get();
 			break;
 
 		case 0x36:				 /* MVI (HL) - load data to memory */
 			memory = getIndex();
-			mem()->put( memory, mem()->get(++pc) );
+			mem()->put( memory, imm8get() );
 			break;
 
 		case 0x3e:				 /* MVI A */
-			a = mem()->get(++pc);
+			a = imm8get();
 			break;
 
 								 /*----------------------------*/
 
 		case 0x01:				 /* LXI BC,data-l,data-h */
-			c = mem()->get(++pc);
-			b = mem()->get(++pc);
+			c = imm8get();
+			b = imm8get();
 			break;
 
 		case 0x11:				 /* LXI DE,data-l,data-h */
-			e = mem()->get(++pc);
-			d = mem()->get(++pc);
+			e = imm8get();
+			d = imm8get();
 			break;
 
 		case 0x21:				 /* LXI HL,data-l,data-h */
-			l = mem()->get(++pc);
-			h = mem()->get(++pc);
+			l = imm8get();
+			h = imm8get();
 			break;
 
 		case 0x31:				 /* LXI SP,data-l,data-h */

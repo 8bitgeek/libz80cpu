@@ -30,6 +30,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ******************************************************************************/
 #include "sim80vm.h"
+#include <stdio.h>
 
 sim80vm::sim80vm(sim80mem* m,sim80io* io)
  : m_rst_vector(0)
@@ -46,7 +47,14 @@ sim80vm::~sim80vm()
 
 void sim80vm::step(void)
 {
+	printf("%04X: %02X\n", getRegPC(), mem()->get(getRegPC()));
 	run1();
+}
+
+void sim80vm::step(uint16_t pc)
+{
+	setRegPC(pc);
+	step();
 }
 
 void sim80vm::run1(void)
@@ -65,5 +73,3 @@ void sim80vm::run1(void)
 	run2();
 	setRegPC( getRegPC()+1 );	 /** increment the PC */
 }
-
-
